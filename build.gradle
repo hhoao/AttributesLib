@@ -1,3 +1,6 @@
+import java.nio.file.Files
+import java.nio.file.Paths
+
 buildscript {
     repositories {
         // These repositories are only for Gradle plugins, put any other repositories in the repository block further below
@@ -13,6 +16,7 @@ plugins {
     id 'eclipse'
     id 'idea'
     id 'net.minecraftforge.gradle' version '[6.0.16,6.2)'
+    id("com.diffplug.spotless") version "6.25.0"
 }
 
 apply plugin: 'org.spongepowered.mixin'
@@ -296,5 +300,19 @@ tasks.withType(JavaCompile).configureEach {
 jar {
     manifest {
         attributes 'FMLAT': 'accesstransformer.cfg'
+    }
+}
+
+
+spotless {
+    java {
+        googleJavaFormat().style("AOSP")
+        formatAnnotations()
+        var licenseBuilder = new StringBuilder("/*\n")
+        for (final def line in Files.readAllLines(Paths.get(rootProject.projectDir.absolutePath, "LICENSE.txt")) ) {
+            licenseBuilder.append(" * ${line}\n")
+        }
+        licenseBuilder.append(" */\n\n")
+        licenseHeader(licenseBuilder.toString())
     }
 }
