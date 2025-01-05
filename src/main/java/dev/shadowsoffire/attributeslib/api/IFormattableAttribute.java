@@ -207,7 +207,7 @@ public interface IFormattableAttribute {
         }
         // Speed has no metric, so displaying everything as percent works better for the user.
         // However, Speed also operates in that the default is 0.1, not 1, so we have to
-        // special-case it instead of including it above.
+        //        // special-case it instead of including it above.
         if (this == Attributes.MOVEMENT_SPEED && isNullOrAddition(op)) {
             return Component.translatable(
                     "attributeslib.value.percent",
