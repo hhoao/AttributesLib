@@ -213,7 +213,7 @@ public class AttributeMapMixin implements IEntityOwned, IAttributeManager {
             this.updatingAttributes.clear();
         } else {
             // Otherwise, cycle through each instance and get the new values, post the results
-            if (!this.getOwner().level().isClientSide) {
+            if (!this.getOwner().level.isClientSide) {
                 this.updatingAttributes.forEach(
                         (attr, pair) ->
                                 MinecraftForge.EVENT_BUS.post(
@@ -245,7 +245,7 @@ public class AttributeMapMixin implements IEntityOwned, IAttributeManager {
         if (owner == null)
             throw new RuntimeException("An AttributeMap object was modified without a set owner!");
 
-        if (!this.areAttributesUpdating() && !owner.level().isClientSide) {
+        if (!this.areAttributesUpdating() && !owner.level.isClientSide) {
             // This call site is only valid on the server, because the client nukes and reapplies
             // all attribute modifiers when received.
             double oldValue = ((AttributeInstanceAccessor) inst).getCachedValue();

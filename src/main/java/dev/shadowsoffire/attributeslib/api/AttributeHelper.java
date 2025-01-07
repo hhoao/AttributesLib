@@ -162,9 +162,9 @@ import dev.shadowsoffire.attributeslib.util.ItemAccess;
 import java.util.Comparator;
 import java.util.UUID;
 import net.minecraft.ChatFormatting;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.network.chat.Component;
+import net.minecraft.core.Registry;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.TextComponent;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
@@ -270,8 +270,9 @@ public class AttributeHelper {
 
     @SuppressWarnings("deprecation")
     public static Multimap<Attribute, AttributeModifier> sortedMap() {
+
         return TreeMultimap.create(
-                Comparators.idComparator(BuiltInRegistries.ATTRIBUTE), modifierComparator());
+                Comparators.idComparator(Registry.ATTRIBUTE), modifierComparator());
     }
 
     public static Comparator<AttributeModifier> modifierComparator() {
@@ -283,6 +284,6 @@ public class AttributeHelper {
 
     /** Creates a mutable component starting with the char used to represent a drop-down list. */
     public static MutableComponent list() {
-        return Component.literal(" \u2507 ").withStyle(ChatFormatting.GRAY);
+        return new TextComponent(" \u2507 ").withStyle(ChatFormatting.GRAY);
     }
 }

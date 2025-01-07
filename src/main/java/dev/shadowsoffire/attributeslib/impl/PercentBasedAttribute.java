@@ -155,8 +155,8 @@
 package dev.shadowsoffire.attributeslib.impl;
 
 import dev.shadowsoffire.attributeslib.api.IFormattableAttribute;
-import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation;
 import net.minecraft.world.entity.ai.attributes.RangedAttribute;
 import net.minecraft.world.item.ItemStack;
@@ -177,7 +177,7 @@ public class PercentBasedAttribute extends RangedAttribute implements IFormattab
 
     @Override
     public MutableComponent toValueComponent(Operation op, double value, TooltipFlag flag) {
-        return Component.translatable(
+        return new TranslatableComponent(
                 "attributeslib.value.percent",
                 ItemStack.ATTRIBUTE_MODIFIER_FORMAT.format(value * 100));
     }

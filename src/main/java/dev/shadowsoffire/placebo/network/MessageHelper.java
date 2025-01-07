@@ -208,7 +208,7 @@ public class MessageHelper {
      * NetworkEvent.Context#setPacketHandled(boolean)}
      *
      * @param r Code to run to handle the packet. Will be executed on the main thread.
-     * @param ctx Context object. Available from {@link MessageProvider#handle(Object, Supplier)}
+     * @param ctxSup Context object. Available from {@link MessageProvider#handle(Object, Supplier)}
      */
     public static void handlePacket(Runnable r, Supplier<NetworkEvent.Context> ctxSup) {
         NetworkEvent.Context ctx = ctxSup.get();

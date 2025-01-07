@@ -156,8 +156,8 @@ package dev.shadowsoffire.attributeslib.impl;
 
 import dev.shadowsoffire.attributeslib.api.IFormattableAttribute;
 import net.minecraft.ChatFormatting;
-import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation;
@@ -190,13 +190,13 @@ public class BooleanAttribute extends Attribute implements IFormattableAttribute
     public MutableComponent toValueComponent(
             @Nullable Operation op, double value, TooltipFlag flag) {
         if (op == null) {
-            return Component.translatable(
+            return new TranslatableComponent(
                     "attributeslib.value.boolean." + (value > 0 ? "enabled" : "disabled"));
         } else if (op == Operation.ADDITION && (int) value == 1) {
-            return Component.translatable("attributeslib.value.boolean.enable");
+            return new TranslatableComponent("attributeslib.value.boolean.enable");
         } else if (op == Operation.MULTIPLY_TOTAL && (int) value == -1) {
-            return Component.translatable("attributeslib.value.boolean.force_disable");
-        } else return Component.translatable("attributeslib.value.boolean.invalid");
+            return new TranslatableComponent("attributeslib.value.boolean.force_disable");
+        } else return new TranslatableComponent("attributeslib.value.boolean.invalid");
     }
 
     @Override
@@ -208,18 +208,18 @@ public class BooleanAttribute extends Attribute implements IFormattableAttribute
 
         if (value > 0.0D) {
             comp =
-                    Component.translatable(
+                    new TranslatableComponent(
                                     "attributeslib.modifier.bool",
                                     this.toValueComponent(modif.getOperation(), value, flag),
-                                    Component.translatable(attr.getDescriptionId()))
+                                    new TranslatableComponent(attr.getDescriptionId()))
                             .withStyle(ChatFormatting.BLUE);
         } else {
             value *= -1.0D;
             comp =
-                    Component.translatable(
+                    new TranslatableComponent(
                                     "attributeslib.modifier.bool",
                                     this.toValueComponent(modif.getOperation(), value, flag),
-                                    Component.translatable(attr.getDescriptionId()))
+                                    new TranslatableComponent(attr.getDescriptionId()))
                             .withStyle(ChatFormatting.RED);
         }
 

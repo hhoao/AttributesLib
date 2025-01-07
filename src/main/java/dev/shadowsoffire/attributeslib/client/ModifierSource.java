@@ -154,15 +154,17 @@
 
 package dev.shadowsoffire.attributeslib.client;
 
+import static net.minecraft.client.gui.GuiComponent.blit;
+
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.shadowsoffire.attributeslib.util.Comparators;
 import java.util.Comparator;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.MobEffectTextureManager;
-import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.Registry;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.LivingEntity;
@@ -187,12 +189,13 @@ public abstract class ModifierSource<T> implements Comparable<ModifierSource<T>>
     /**
      * Render this ModifierSource as whatever visual representation it may take.
      *
-     * @param gfx
+     * @param itemRenderer
      * @param font
      * @param x
      * @param y
      */
-    public abstract void render(GuiGraphics gfx, Font font, int x, int y);
+    public abstract void render(
+            PoseStack poseStack, ItemRenderer itemRenderer, Font font, int x, int y);
 
     public ModifierSourceType<T> getType() {
         return this.type;
@@ -218,19 +221,19 @@ public abstract class ModifierSource<T> implements Comparable<ModifierSource<T>>
                             .thenComparing(
                                     Comparator.comparing(
                                             ItemStack::getItem,
-                                            Comparators.idComparator(BuiltInRegistries.ITEM))),
+                                            Comparators.idComparator(Registry.ITEM))),
                     data);
         }
 
         @Override
-        public void render(GuiGraphics gfx, Font font, int x, int y) {
-            PoseStack pose = gfx.pose();
-            pose.pushPose();
+        public void render(
+                PoseStack poseStack, ItemRenderer itemRenderer, Font font, int x, int y) {
+            poseStack.pushPose();
             float scale = 0.5F;
-            pose.scale(scale, scale, 1);
-            pose.translate(1 + x / scale, 1 + y / scale, 0);
-            gfx.renderFakeItem(this.data, 0, 0);
-            pose.popPose();
+            poseStack.scale(scale, scale, 1);
+            poseStack.translate(1 + x / scale, 1 + y / scale, 0);
+            itemRenderer.renderGuiItem(this.data, 0, 0);
+            poseStack.popPose();
         }
     }
 
@@ -242,12 +245,13 @@ public abstract class ModifierSource<T> implements Comparable<ModifierSource<T>>
                     ModifierSourceType.MOB_EFFECT,
                     Comparator.comparing(
                             MobEffectInstance::getEffect,
-                            Comparators.idComparator(BuiltInRegistries.MOB_EFFECT)),
+                            Comparators.idComparator(Registry.MOB_EFFECT)),
                     data);
         }
 
         @Override
-        public void render(GuiGraphics gfx, Font font, int x, int y) {
+        public void render(
+                PoseStack poseStack, ItemRenderer itemRenderer, Font font, int x, int y) {
             MobEffectTextureManager texMgr = Minecraft.getInstance().getMobEffectTextures();
             // We don't have an EffectRenderingInventoryScreen, so we'll just hope the texture is
             // good enough.
@@ -261,12 +265,11 @@ public abstract class ModifierSource<T> implements Comparable<ModifierSource<T>>
             MobEffect effect = this.data.getEffect();
             TextureAtlasSprite sprite = texMgr.get(effect);
             float scale = 0.5F;
-            PoseStack stack = gfx.pose();
-            stack.pushPose();
-            stack.scale(scale, scale, 1);
-            stack.translate(x / scale, y / scale, 0);
-            gfx.blit(0, 0, 0, 18, 18, sprite);
-            stack.popPose();
+            poseStack.pushPose();
+            poseStack.scale(scale, scale, 1);
+            poseStack.translate(x / scale, y / scale, 0);
+            blit(poseStack, 0, 0, 0, 18, 18, sprite);
+            poseStack.popPose();
         }
     }
 }

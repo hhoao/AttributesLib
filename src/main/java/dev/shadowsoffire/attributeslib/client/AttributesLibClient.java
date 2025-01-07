@@ -159,7 +159,6 @@ import com.google.common.collect.Multimap;
 import com.mojang.datafixers.util.Pair;
 import dev.shadowsoffire.attributeslib.ALConfig;
 import dev.shadowsoffire.attributeslib.AttributesLib;
-import dev.shadowsoffire.attributeslib.api.ALObjects;
 import dev.shadowsoffire.attributeslib.api.AttributeHelper;
 import dev.shadowsoffire.attributeslib.api.IFormattableAttribute;
 import dev.shadowsoffire.attributeslib.api.client.AddAttributeTooltipsEvent;
@@ -185,12 +184,13 @@ import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.CritParticle;
 import net.minecraft.client.resources.language.I18n;
+import net.minecraft.core.Registry;
 import net.minecraft.core.particles.SimpleParticleType;
-import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.TextColor;
-import net.minecraft.network.chat.contents.LiteralContents;
+import net.minecraft.network.chat.TextComponent;
+import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
@@ -205,8 +205,8 @@ import net.minecraft.world.item.PotionItem;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.alchemy.PotionUtils;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
+import net.minecraftforge.client.event.ParticleFactoryRegisterEvent;
 import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
-import net.minecraftforge.client.event.RegisterParticleProvidersEvent;
 import net.minecraftforge.client.event.ScreenEvent;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.player.ItemTooltipEvent;
@@ -216,7 +216,7 @@ import net.minecraftforge.eventbus.api.SubscribeEvent;
 public class AttributesLibClient {
 
     @SubscribeEvent
-    public void updateClientFlyStateOnRespawn(ClientPlayerNetworkEvent.Clone e) {
+    public void updateClientFlyStateOnRespawn(ClientPlayerNetworkEvent.RespawnEvent e) {
         // Teleporting to another dimension constitutes a respawn - the other checks we have ensure
         // the mayFly state returns, but not the flying state.
         // For this one we have to ensure that the state is marked to be restored before
@@ -233,8 +233,13 @@ public class AttributesLibClient {
     }
 
     @SubscribeEvent
-    public static void particleFactories(RegisterParticleProvidersEvent e) {
-        e.registerSprite(ALObjects.Particles.APOTH_CRIT.get(), ApothCritParticle::new);
+    public static void particleFactories(ParticleFactoryRegisterEvent e) {
+        //
+        // Minecraft.getInstance().particleEngine.register(ALObjects.Particles.APOTH_CRIT.get(),
+        // ApothCritParticle::new);
+        //        Minecraft.getInstance()
+        //                .particleEngine
+        //                .register(ALObjects.Particles.APOTH_CRIT.get(), ApothCritParticle::new);
     }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
@@ -243,14 +248,13 @@ public class AttributesLibClient {
         List<Component> list = e.getToolTip();
         int markIdx1 = -1, markIdx2 = -1;
         for (int i = 0; i < list.size(); i++) {
-            if (list.get(i).getContents() instanceof LiteralContents tc) {
-                if ("APOTH_REMOVE_MARKER".equals(tc.text())) {
-                    markIdx1 = i;
-                }
-                if ("APOTH_REMOVE_MARKER_2".equals(tc.text())) {
-                    markIdx2 = i;
-                    break;
-                }
+            String contents = list.get(i).getContents();
+            if ("APOTH_REMOVE_MARKER".equals(contents)) {
+                markIdx1 = i;
+            }
+            if ("APOTH_REMOVE_MARKER_2".equals(contents)) {
+                markIdx2 = i;
+                break;
             }
         }
         if (markIdx1 == -1 || markIdx2 == -1) return;
@@ -261,16 +265,16 @@ public class AttributesLibClient {
         }
         int flags = getHideFlags(stack);
         if (shouldShowInTooltip(flags, TooltipPart.MODIFIERS)) {
-            applyModifierTooltips(e.getEntity(), stack, it::add, e.getFlags());
+            applyModifierTooltips(e.getPlayer(), stack, it::add, e.getFlags());
         }
         MinecraftForge.EVENT_BUS.post(
-                new AddAttributeTooltipsEvent(stack, e.getEntity(), list, it, e.getFlags()));
+                new AddAttributeTooltipsEvent(stack, e.getPlayer(), list, it, e.getFlags()));
     }
 
     @SubscribeEvent(priority = EventPriority.HIGH)
-    public void addAttribComponent(ScreenEvent.Init.Post e) {
+    public void addAttribComponent(ScreenEvent.InitScreenEvent.Post e) {
         if (ALConfig.enableAttributesGui && e.getScreen() instanceof InventoryScreen scn) {
-            var atrComp = new AttributesGui(scn);
+            AttributesGui atrComp = new AttributesGui(scn);
             e.addListener(atrComp);
             e.addListener(atrComp.toggleBtn);
             e.addListener(atrComp.hideUnchangedBtn);
@@ -289,25 +293,24 @@ public class AttributesLibClient {
 
         MutableComponent name = (MutableComponent) tooltips.get(0);
         Component duration = tooltips.remove(1);
-        duration = Component.translatable("(%s)", duration).withStyle(ChatFormatting.WHITE);
+        duration = new TranslatableComponent("(%s)", duration).withStyle(ChatFormatting.WHITE);
 
         name.append(" ").append(duration);
 
         if (AttributesLib.getTooltipFlag().isAdvanced()) {
             name.append(" ")
                     .append(
-                            Component.translatable(
-                                            "[%s]", BuiltInRegistries.MOB_EFFECT.getKey(effect))
+                            new TranslatableComponent("[%s]", Registry.MOB_EFFECT.getKey(effect))
                                     .withStyle(ChatFormatting.GRAY));
         }
 
         String key = effect.getDescriptionId() + ".desc";
         if (I18n.exists(key)) {
-            tooltips.add(Component.translatable(key).withStyle(ChatFormatting.DARK_GRAY));
+            tooltips.add(new TranslatableComponent(key).withStyle(ChatFormatting.DARK_GRAY));
         } else if (AttributesLib.getTooltipFlag().isAdvanced()
                 && effect.getAttributeModifiers().isEmpty()) {
             tooltips.add(
-                    Component.translatable(key)
+                    new TranslatableComponent(key)
                             .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
         }
 
@@ -349,11 +352,11 @@ public class AttributesLibClient {
                 String key = effect.getDescriptionId() + ".desc";
                 if (I18n.exists(key)) {
                     tooltips.add(
-                            2, Component.translatable(key).withStyle(ChatFormatting.DARK_GRAY));
+                            2, new TranslatableComponent(key).withStyle(ChatFormatting.DARK_GRAY));
                 } else if (e.getFlags().isAdvanced() && effect.getAttributeModifiers().isEmpty()) {
                     tooltips.add(
                             2,
-                            Component.translatable(key)
+                            new TranslatableComponent(key)
                                     .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
                 }
             }
@@ -380,9 +383,10 @@ public class AttributesLibClient {
     public static void apothCrit(int entityId) {
         Entity entity = Minecraft.getInstance().level.getEntity(entityId);
         if (entity != null) {
-            Minecraft.getInstance()
-                    .particleEngine
-                    .createTrackingEmitter(entity, ALObjects.Particles.APOTH_CRIT.get());
+            //            Minecraft.getInstance()
+            //                    .particleEngine
+            //                    .createTrackingEmitter(entity,
+            // ALObjects.Particles.APOTH_CRIT.get());
         }
     }
 
@@ -438,7 +442,7 @@ public class AttributesLibClient {
     }
 
     private static MutableComponent padded(String padding, Component comp) {
-        return Component.literal(padding).append(comp);
+        return new TextComponent(padding).append(comp);
     }
 
     private static MutableComponent list() {
@@ -461,9 +465,9 @@ public class AttributesLibClient {
         if (!modifierMap.isEmpty()) {
             modifierMap.values().removeIf(m -> skips.contains(m.getId()));
 
-            tooltip.accept(Component.empty());
+            tooltip.accept(new TextComponent(""));
             tooltip.accept(
-                    Component.translatable("item.modifiers." + group)
+                    new TranslatableComponent("item.modifiers." + group)
                             .withStyle(ChatFormatting.GRAY));
 
             if (modifierMap.isEmpty()) return;

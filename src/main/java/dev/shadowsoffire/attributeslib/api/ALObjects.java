@@ -167,11 +167,9 @@ import dev.shadowsoffire.attributeslib.mobfx.KnowledgeEffect;
 import dev.shadowsoffire.attributeslib.mobfx.SunderingEffect;
 import dev.shadowsoffire.attributeslib.mobfx.VitalityEffect;
 import net.minecraft.core.particles.SimpleParticleType;
-import net.minecraft.core.registries.Registries;
-import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundEvent;
-import net.minecraft.tags.TagKey;
-import net.minecraft.world.damagesource.DamageType;
+import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation;
 import net.minecraft.world.entity.ai.attributes.RangedAttribute;
@@ -433,8 +431,7 @@ public class ALObjects {
                 R.effect("grievous", GrievousEffect::new);
 
         /**
-         * Ancient Knowledge multiplies experience dropped by mobs by level * {@link
-         * MobFxLib#knowledgeMult}.<br>
+         * Ancient Knowledge multiplies experience dropped by mobs by level * {b#knowledgeMult}.<br>
          * The multiplier is configurable.
          */
         public static final RegistryObject<KnowledgeEffect> KNOWLEDGE =
@@ -464,6 +461,7 @@ public class ALObjects {
         public static final RegistryObject<SimpleParticleType> APOTH_CRIT =
                 R.particle("apoth_crit", () -> new SimpleParticleType(false));
 
+        //
         @ApiStatus.Internal
         public static void bootstrap() {}
     }
@@ -476,45 +474,6 @@ public class ALObjects {
         public static void bootstrap() {}
     }
 
-    public static class DamageTypes {
-
-        /** Damage type used by {@link MobEffects#BLEEDING}. Bypasses armor. */
-        public static final ResourceKey<DamageType> BLEEDING =
-                ResourceKey.create(Registries.DAMAGE_TYPE, AttributesLib.loc("bleeding"));
-
-        /**
-         * Damage type used by {@link MobEffects#DETONATION}. Bypasses armor, and is marked as magic
-         * damage.
-         */
-        public static final ResourceKey<DamageType> DETONATION =
-                ResourceKey.create(Registries.DAMAGE_TYPE, AttributesLib.loc("detonation"));
-
-        /**
-         * Damage type used by {@link Attributes#CURRENT_HP_DAMAGE}. Same properties as generic
-         * physical damage. Has attacker context.
-         */
-        public static final ResourceKey<DamageType> CURRENT_HP_DAMAGE =
-                ResourceKey.create(Registries.DAMAGE_TYPE, AttributesLib.loc("current_hp_damage"));
-
-        /**
-         * Damage type used by {@link Attributes#FIRE_DAMAGE}. Bypasses armor, and is marked as
-         * magic damage. Has attacker context.<br>
-         * Not marked as fire damage until fire resistance is reworked to not block all fire damage.
-         */
-        public static final ResourceKey<DamageType> FIRE_DAMAGE =
-                ResourceKey.create(Registries.DAMAGE_TYPE, AttributesLib.loc("fire_damage"));
-
-        /**
-         * Damage type used by {@link Attributes#COLD_DAMAGE}. Bypasses armor, and is marked as
-         * magic damage. Has attacker context.
-         */
-        public static final ResourceKey<DamageType> COLD_DAMAGE =
-                ResourceKey.create(Registries.DAMAGE_TYPE, AttributesLib.loc("cold_damage"));
-
-        @ApiStatus.Internal
-        public static void bootstrap() {}
-    }
-
     public static class Tags {
 
         /**
@@ -522,8 +481,44 @@ public class ALObjects {
          * instead treated as a list of modifiers that will be applied when the event occurs. The
          * applied modifiers will use the normal rules of {@link Operation} but on the dynamic base.
          */
-        public static final TagKey<Attribute> DYNAMIC_BASE_ATTRIBUTES =
-                TagKey.create(Registries.ATTRIBUTE, AttributesLib.loc("dynamic_base"));
+        public static final ResourceLocation DYNAMIC_BASE_ATTTE = AttributesLib.loc("dynamic_base");
+    }
+
+    public static class DamageTypes {
+
+        /** Damage type used by {@link MobEffects#BLEEDING}. Bypasses armor. */
+        public static final DamageSource BLEEDING =
+                new DamageSource("bleeding")
+                        .bypassArmor() // 可选：无视护甲
+                        .setMagic();
+
+        /**
+         * Damage type used by {@link MobEffects#DETONATION}. Bypasses armor, and is marked as magic
+         * damage.
+         */
+        public static final DamageSource DETONATION = new DamageSource("detonation");
+
+        /**
+         * Damage type used by {@link Attributes#CURRENT_HP_DAMAGE}. Same properties as generic
+         * physical damage. Has attacker context.
+         */
+        public static final DamageSource CURRENT_HP_DAMAGE = new DamageSource("current_hp_damage");
+
+        /**
+         * Damage type used by {@link Attributes#FIRE_DAMAGE}. Bypasses armor, and is marked as
+         * magic damage. Has attacker context.<br>
+         * Not marked as fire damage until fire resistance is reworked to not block all fire damage.
+         */
+        public static final DamageSource FIRE_DAMAGE = new DamageSource("fire_damage");
+
+        /**
+         * Damage type used by {@link Attributes#COLD_DAMAGE}. Bypasses armor, and is marked as
+         * magic damage. Has attacker context.
+         */
+        public static final DamageSource COLD_DAMAGE = new DamageSource("cold_damage");
+
+        @ApiStatus.Internal
+        public static void bootstrap() {}
     }
 
     @ApiStatus.Internal

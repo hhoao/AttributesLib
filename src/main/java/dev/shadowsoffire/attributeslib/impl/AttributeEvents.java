@@ -166,22 +166,20 @@ import dev.shadowsoffire.attributeslib.util.IFlying;
 import dev.shadowsoffire.placebo.network.PacketDistro;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import java.util.Random;
+import java.util.concurrent.ThreadLocalRandom;
 import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
-import net.minecraft.util.RandomSource;
 import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.damagesource.DamageType;
+import net.minecraft.world.damagesource.EntityDamageSource;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
-import net.minecraft.world.entity.ai.attributes.AttributeMap;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -198,7 +196,7 @@ import net.minecraft.world.phys.EntityHitResult;
 import net.minecraftforge.common.ForgeMod;
 import net.minecraftforge.event.AddReloadListenerEvent;
 import net.minecraftforge.event.ItemAttributeModifierEvent;
-import net.minecraftforge.event.entity.EntityJoinLevelEvent;
+import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.entity.ProjectileImpactEvent;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
 import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent;
@@ -208,18 +206,17 @@ import net.minecraftforge.event.entity.living.LivingHurtEvent;
 import net.minecraftforge.event.entity.player.AttackEntityEvent;
 import net.minecraftforge.event.entity.player.CriticalHitEvent;
 import net.minecraftforge.event.entity.player.PlayerEvent.BreakSpeed;
-import net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent;
-import net.minecraftforge.event.level.BlockEvent.BreakEvent;
+import net.minecraftforge.event.world.BlockEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 
 public class AttributeEvents {
 
-    @SubscribeEvent
-    public void fixChangedAttributes(PlayerLoggedInEvent e) {
-        AttributeMap map = e.getEntity().getAttributes();
-        map.getInstance(ForgeMod.STEP_HEIGHT_ADDITION.get()).setBaseValue(0.6);
-    }
+    //    @SubscribeEvent
+    //    public void fixChangedAttributes(PlayerLoggedInEvent e) {
+    //        AttributeMap map = e.getEntityLiving().getAttributes();
+    //        map.getInstance(ForgeMod.STEP_HEIGHT_ADDITION.get()).setBaseValue(0.6);
+    //    }
 
     private boolean canBenefitFromDrawSpeed(ItemStack stack) {
         return stack.getItem() instanceof ProjectileWeaponItem
@@ -227,7 +224,7 @@ public class AttributeEvents {
     }
 
     /**
-     * This event handler is the implementation for {@link ALObjects#DRAW_SPEED}.<br>
+     * This event handler is the implementation for {@link ALObjects.Attributes#DRAW_SPEED}.<br>
      * Each full point of draw speed provides an extra using tick per game tick.<br>
      * Each partial point of draw speed provides an extra using tick periodically.
      */
@@ -267,7 +264,7 @@ public class AttributeEvents {
                 && AttributesUtil.isPhysicalDamage(e.getSource())) {
             float lifesteal =
                     (float) attacker.getAttributeValue(ALObjects.Attributes.LIFE_STEAL.get());
-            float dmg = Math.min(e.getAmount(), e.getEntity().getHealth());
+            float dmg = Math.min(e.getAmount(), e.getEntityLiving().getHealth());
             if (lifesteal > 0.001) {
                 attacker.heal(dmg * lifesteal);
             }
@@ -291,14 +288,14 @@ public class AttributeEvents {
      * Applies the following melee damage attributes:<br>
      *
      * <ul>
-     *   <li>{@link ALObjects#CURRENT_HP_DAMAGE}
-     *   <li>{@link ALObjects#FIRE_DAMAGE}
-     *   <li>{@link ALObjects#COLD_DAMAGE}
+     *   <li>{@link ALObjects.Attributes#CURRENT_HP_DAMAGE}
+     *   <li>{@link ALObjects.Attributes#FIRE_DAMAGE}
+     *   <li>{@link ALObjects.Attributes#COLD_DAMAGE}
      * </ul>
      */
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void meleeDamageAttributes(LivingAttackEvent e) {
-        if (e.getEntity().level().isClientSide || e.getEntity().isDeadOrDying()) return;
+        if (e.getEntityLiving().level.isClientSide || e.getEntityLiving().isDeadOrDying()) return;
         if (noRecurse) return;
         noRecurse = true;
         if (e.getSource().getDirectEntity() instanceof LivingEntity attacker
@@ -311,7 +308,7 @@ public class AttributeEvents {
                     (float) attacker.getAttributeValue(ALObjects.Attributes.FIRE_DAMAGE.get());
             float coldDmg =
                     (float) attacker.getAttributeValue(ALObjects.Attributes.COLD_DAMAGE.get());
-            LivingEntity target = e.getEntity();
+            LivingEntity target = e.getEntityLiving();
             int time = target.invulnerableTime;
             target.invulnerableTime = 0;
             if (hpDmg > 0.001 && AttributesLib.localAtkStrength >= 0.85F) {
@@ -345,11 +342,13 @@ public class AttributeEvents {
         noRecurse = false;
     }
 
-    private static DamageSource src(ResourceKey<DamageType> type, LivingEntity entity) {
-        return entity.level().damageSources().source(type, entity);
+    public static DamageSource src(DamageSource type, LivingEntity entity) {
+        return new EntityDamageSource(type.msgId, entity);
     }
 
-    /** Handles {@link ALObjects#CRIT_CHANCE} and {@link ALObjects#CRIT_DAMAGE} */
+    /**
+     * Handles {@link ALObjects.Attributes#CRIT_CHANCE} and {@link ALObjects.Attributes#CRIT_DAMAGE}
+     */
     @SubscribeEvent(priority = EventPriority.HIGH)
     public void apothCriticalStrike(LivingHurtEvent e) {
         LivingEntity attacker = e.getSource().getEntity() instanceof LivingEntity le ? le : null;
@@ -358,14 +357,14 @@ public class AttributeEvents {
         double critChance = attacker.getAttributeValue(ALObjects.Attributes.CRIT_CHANCE.get());
         float critDmg = (float) attacker.getAttributeValue(ALObjects.Attributes.CRIT_DAMAGE.get());
 
-        RandomSource rand = e.getEntity().getRandom();
+        ThreadLocalRandom current = ThreadLocalRandom.current();
 
         float critMult = 1.0F;
 
         // Roll for crits. Each overcrit reduces the effectiveness by 15%
         // We stop rolling when crit chance fails or the crit damage would reduce the total damage
         // dealt.
-        while (rand.nextFloat() <= critChance && critDmg > 1.0F) {
+        while (current.nextFloat() <= critChance && critDmg > 1.0F) {
             critChance--;
             critMult *= critDmg;
             critDmg *= 0.85F;
@@ -373,42 +372,47 @@ public class AttributeEvents {
 
         e.setAmount(e.getAmount() * critMult);
 
-        if (critMult > 1 && !attacker.level().isClientSide) {
+        if (critMult > 1 && !attacker.level.isClientSide) {
             PacketDistro.sendToTracking(
                     AttributesLib.CHANNEL,
                     new CritParticleMessage(e.getEntity().getId()),
-                    (ServerLevel) attacker.level(),
+                    (ServerLevel) attacker.level,
                     e.getEntity().blockPosition());
         }
     }
 
-    /** Handles {@link ALObjects#CRIT_DAMAGE}'s interactions with vanilla critical strikes. */
+    /**
+     * Handles {@link ALObjects.Attributes#CRIT_DAMAGE}'s interactions with vanilla critical
+     * strikes.
+     */
     @SubscribeEvent(priority = EventPriority.HIGH)
     public void vanillaCritDmg(CriticalHitEvent e) {
         float critDmg =
-                (float) e.getEntity().getAttributeValue(ALObjects.Attributes.CRIT_DAMAGE.get());
+                (float)
+                        e.getEntityLiving()
+                                .getAttributeValue(ALObjects.Attributes.CRIT_DAMAGE.get());
         if (e.isVanillaCritical()) {
             e.setDamageModifier(Math.max(e.getDamageModifier(), critDmg));
         }
     }
 
-    /** Handles {@link ALObjects#MINING_SPEED} */
+    /** Handles {@link ALObjects.Attributes#MINING_SPEED} */
     @SubscribeEvent(priority = EventPriority.HIGH)
     public void breakSpd(BreakSpeed e) {
         e.setNewSpeed(
                 e.getNewSpeed()
                         * (float)
-                                e.getEntity()
+                                e.getEntityLiving()
                                         .getAttributeValue(
                                                 ALObjects.Attributes.MINING_SPEED.get()));
     }
 
     /**
      * This event, and {@linkplain #mobXp(LivingExperienceDropEvent) the event below} handle {@link
-     * ALObjects#EXPERIENCE_GAINED}
+     * ALObjects.Attributes#EXPERIENCE_GAINED}
      */
     @SubscribeEvent(priority = EventPriority.HIGH)
-    public void blockBreak(BreakEvent e) {
+    public void blockBreak(BlockEvent.BreakEvent e) {
         double xpMult =
                 e.getPlayer().getAttributeValue(ALObjects.Attributes.EXPERIENCE_GAINED.get());
         e.setExpToDrop((int) (e.getExpToDrop() * xpMult));
@@ -424,22 +428,25 @@ public class AttributeEvents {
         e.setDroppedExperience((int) (e.getDroppedExperience() * xpMult));
     }
 
-    /** Handles {@link ALObjects#HEALING_RECEIVED} */
+    /** Handles {@link ALObjects.Attributes#HEALING_RECEIVED} */
     @SubscribeEvent(priority = EventPriority.HIGH)
     public void heal(LivingHealEvent e) {
         float factor =
                 (float)
-                        e.getEntity()
+                        e.getEntityLiving()
                                 .getAttributeValue(ALObjects.Attributes.HEALING_RECEIVED.get());
         e.setAmount(e.getAmount() * factor);
         if (e.getAmount() <= 0) e.setCanceled(true);
     }
 
-    /** Handles {@link ALObjects#ARROW_DAMAGE} and {@link ALObjects#ARROW_VELOCITY} */
+    /**
+     * Handles {@link ALObjects.Attributes#ARROW_DAMAGE} and {@link
+     * ALObjects.Attributes#ARROW_VELOCITY}
+     */
     @SubscribeEvent
-    public void arrow(EntityJoinLevelEvent e) {
+    public void arrow(EntityJoinWorldEvent e) {
         if (e.getEntity() instanceof AbstractArrow arrow) {
-            if (arrow.level().isClientSide
+            if (arrow.level.isClientSide
                     || arrow.getPersistentData().getBoolean("attributeslib.arrow.done")) return;
             if (arrow.getOwner() instanceof LivingEntity le) {
                 arrow.setBaseDamage(
@@ -461,16 +468,17 @@ public class AttributeEvents {
                 + pAttackTarget.getBbWidth();
     }
 
-    /** Handles {@link ALObjects#DODGE_CHANCE} for melee attacks. */
+    /** Handles {@link ALObjects.Attributes#DODGE_CHANCE} for melee attacks. */
     @SubscribeEvent(priority = EventPriority.HIGH)
     public void dodge(LivingAttackEvent e) {
-        LivingEntity target = e.getEntity();
-        if (target.level().isClientSide) return;
+        LivingEntity target = e.getEntityLiving();
+        if (target.level.isClientSide) return;
         Entity attacker = e.getSource().getDirectEntity();
         if (attacker instanceof LivingEntity) {
             double atkRangeSqr =
                     attacker instanceof Player p
-                            ? p.getEntityReach() * p.getEntityReach()
+                            ? p.getAttribute(ForgeMod.REACH_DISTANCE.get()).getValue()
+                                    * p.getAttribute(ForgeMod.REACH_DISTANCE.get()).getValue()
                             : getAttackReachSqr(attacker, target);
             if (attacker.distanceToSqr(target) <= atkRangeSqr && isDodging(target)) {
                 this.onDodge(target);
@@ -479,7 +487,7 @@ public class AttributeEvents {
         }
     }
 
-    /** Handles {@link ALObjects#DODGE_CHANCE} for projectiles. */
+    /** Handles {@link ALObjects.Attributes#DODGE_CHANCE} for projectiles. */
     @SubscribeEvent(priority = EventPriority.HIGH)
     public void dodge(ProjectileImpactEvent e) {
         Entity target =
@@ -495,15 +503,14 @@ public class AttributeEvents {
     }
 
     private void onDodge(LivingEntity target) {
-        target.level()
-                .playSound(
-                        null,
-                        target,
-                        ALObjects.Sounds.DODGE.get(),
-                        SoundSource.NEUTRAL,
-                        1,
-                        0.7F + target.getRandom().nextFloat() * 0.3F);
-        if (target.level() instanceof ServerLevel sl) {
+        target.level.playSound(
+                null,
+                target,
+                ALObjects.Sounds.DODGE.get(),
+                SoundSource.NEUTRAL,
+                1,
+                0.7F + target.getRandom().nextFloat() * 0.3F);
+        if (target.level instanceof ServerLevel sl) {
             double height = target.getBbHeight();
             double width = target.getBbWidth();
             sl.sendParticles(
@@ -553,17 +560,17 @@ public class AttributeEvents {
                         .isPresent();
         if (hasBaseAD) {
             boolean hasBaseAR =
-                    e.getModifiers().get(ForgeMod.ENTITY_REACH.get()).stream()
+                    e.getModifiers().get(ForgeMod.REACH_DISTANCE.get()).stream()
                             .filter(
                                     m ->
-                                            ((IFormattableAttribute) ForgeMod.ENTITY_REACH.get())
+                                            ((IFormattableAttribute) ForgeMod.REACH_DISTANCE.get())
                                                     .getBaseUUID()
                                                     .equals(m.getId()))
                             .findAny()
                             .isPresent();
             if (!hasBaseAR) {
                 e.addModifier(
-                        ForgeMod.ENTITY_REACH.get(),
+                        ForgeMod.REACH_DISTANCE.get(),
                         new AttributeModifier(
                                 AttributeHelper.BASE_ENTITY_REACH,
                                 () -> "attributeslib:fake_base_range",
@@ -586,7 +593,7 @@ public class AttributeEvents {
 
     @SubscribeEvent
     public void trackCooldown(AttackEntityEvent e) {
-        Player p = e.getEntity();
+        Player p = e.getPlayer();
         AttributesLib.localAtkStrength = p.getAttackStrengthScale(0.5F);
     }
 

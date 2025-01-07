@@ -177,10 +177,8 @@ public class DetonationEffect extends MobEffect {
         int ticks = entity.getRemainingFireTicks();
         if (ticks > 0) {
             entity.setRemainingFireTicks(0);
-            entity.hurt(
-                    entity.level().damageSources().source(ALObjects.DamageTypes.BLEEDING),
-                    (1 + amp) * ticks / 14F);
-            ServerLevel level = (ServerLevel) entity.level();
+            entity.hurt(ALObjects.DamageTypes.BLEEDING, (1 + amp) * ticks / 14F);
+            ServerLevel level = (ServerLevel) entity.level;
             AABB bb = entity.getBoundingBox();
             level.sendParticles(
                     ParticleTypes.FLAME,

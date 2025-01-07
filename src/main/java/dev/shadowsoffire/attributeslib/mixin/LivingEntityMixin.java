@@ -157,10 +157,10 @@ package dev.shadowsoffire.attributeslib.mixin;
 import dev.shadowsoffire.attributeslib.api.ALCombatRules;
 import dev.shadowsoffire.attributeslib.api.ALObjects;
 import dev.shadowsoffire.attributeslib.api.AttributeChangedValueEvent;
+import dev.shadowsoffire.attributeslib.util.AttributesUtil;
 import dev.shadowsoffire.attributeslib.util.IAttributeManager;
 import dev.shadowsoffire.attributeslib.util.IEntityOwned;
 import javax.annotation.Nullable;
-import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
@@ -215,7 +215,7 @@ public abstract class LivingEntityMixin extends Entity {
     public float apoth_sunderingApplyEffect(
             float value, float max, DamageSource source, float damage) {
         if (this.hasEffect(ALObjects.MobEffects.SUNDERING.get())
-                && !source.is(DamageTypeTags.BYPASSES_RESISTANCE)) {
+                && !AttributesUtil.bypassesResistance(source)) {
             int level = this.getEffect(ALObjects.MobEffects.SUNDERING.get()).getAmplifier() + 1;
             value += damage * level * 0.2F;
         }
@@ -257,6 +257,9 @@ public abstract class LivingEntityMixin extends Entity {
 
     @Shadow
     public abstract MobEffectInstance getEffect(MobEffect ef);
+
+    @Shadow
+    public abstract void setOnGround(boolean p_21182_);
 
     @Redirect(
             at =

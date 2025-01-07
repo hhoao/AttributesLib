@@ -157,6 +157,7 @@ package dev.shadowsoffire.attributeslib.mixin;
 import java.util.List;
 import javax.annotation.Nullable;
 import net.minecraft.network.chat.Component;
+import net.minecraft.network.chat.TextComponent;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
@@ -177,7 +178,7 @@ public class ItemStackMixin {
             at =
                     @At(
                             value = "INVOKE",
-                            ordinal = 4,
+                            ordinal = 3,
                             target =
                                     "net/minecraft/world/item/ItemStack.shouldShowInTooltip(ILnet/minecraft/world/item/ItemStack$TooltipPart;)Z"),
             locals = LocalCapture.CAPTURE_FAILHARD,
@@ -187,7 +188,7 @@ public class ItemStackMixin {
             TooltipFlag pIsAdvanced,
             CallbackInfoReturnable<List<Component>> cir,
             List<Component> list) {
-        list.add(Component.literal("APOTH_REMOVE_MARKER"));
+        list.add(new TextComponent("APOTH_REMOVE_MARKER"));
     }
 
     // Injects just after ItemStack.TooltipPart.MODIFIERS is written to the tooltip to remember
@@ -207,6 +208,6 @@ public class ItemStackMixin {
             TooltipFlag pIsAdvanced,
             CallbackInfoReturnable<List<Component>> cir,
             List<Component> list) {
-        list.add(Component.literal("APOTH_REMOVE_MARKER_2"));
+        list.add(new TextComponent("APOTH_REMOVE_MARKER_2"));
     }
 }

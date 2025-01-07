@@ -269,13 +269,13 @@ public class ALCombatRules {
 
     /**
      * Computes the A value used in the Y = A / (A + X) formula used by {@link
-     * #getArmorDamageReduction(float, float)}.<br>
+     * #getArmorDamageReduction(float, float, float)}.<br>
      * This value is a flat 10 for small damage values (< 20), and increases after that point.
      *
      * <p>This expression may be configured in the attributeslib.cfg file.
      *
      * @param damage The amount of incoming damage.
-     * @return The A value, for use in {@link #getArmorDamageReduction(float, float)}
+     * @return The A value, for use in {@link #getArmorDamageReduction(float, float, float)}
      */
     public static float getAValue(float damage) {
         if (ALConfig.getAValueExpr().isPresent()) {

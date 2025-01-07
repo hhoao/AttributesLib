@@ -215,6 +215,6 @@ public class GatherSkippedAttributeTooltipsEvent extends PlayerEvent {
      */
     @Override
     @Nullable public Player getEntity() {
-        return super.getEntity();
+        return super.getPlayer();
     }
 }

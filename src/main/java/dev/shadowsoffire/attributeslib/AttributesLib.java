@@ -173,9 +173,9 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.attributes.DefaultAttributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraftforge.common.ForgeMod;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.EntityAttributeModificationEvent;
+import net.minecraftforge.event.entity.player.AttackEntityEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
 import net.minecraftforge.fml.common.Mod;
 import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
@@ -197,7 +197,7 @@ public class AttributesLib {
 
     /**
      * Static record of {@link Player#getAttackStrengthScale(float)} for use in damage events.<br>
-     * Recorded in the {@link PlayerAttackEvent} and valid for the entire chain, when a player
+     * Recorded in the {@link AttackEntityEvent} and valid for the entire chain, when a player
      * attacks.
      */
     public static float localAtkStrength = 1;
@@ -276,7 +276,7 @@ public class AttributesLib {
         // Change the base value of Step Height to reflect the real base value of a Player.
         // The alternative is a bunch of special casing in the display.
         // This is course-corrected in IForgeEntityMixin.
-        e.add(EntityType.PLAYER, ForgeMod.STEP_HEIGHT_ADDITION.get(), 0.6);
+        //        e.add(EntityType.PLAYER, ForgeMod.STEP_HEIGHT_ADDITION.get(), 0.6);
     }
 
     @SafeVarargs
@@ -297,7 +297,7 @@ public class AttributesLib {
 
     public static TooltipFlag getTooltipFlag() {
         if (FMLEnvironment.dist.isClient()) return ClientAccess.getTooltipFlag();
-        return TooltipFlag.NORMAL;
+        return TooltipFlag.Default.NORMAL;
     }
 
     public static ResourceLocation loc(String path) {
@@ -307,8 +307,8 @@ public class AttributesLib {
     private static class ClientAccess {
         static TooltipFlag getTooltipFlag() {
             return Minecraft.getInstance().options.advancedItemTooltips
-                    ? TooltipFlag.ADVANCED
-                    : TooltipFlag.NORMAL;
+                    ? TooltipFlag.Default.ADVANCED
+                    : TooltipFlag.Default.NORMAL;
         }
     }
 }

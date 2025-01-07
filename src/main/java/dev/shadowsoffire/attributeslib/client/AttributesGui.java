@@ -154,6 +154,8 @@
 
 package dev.shadowsoffire.attributeslib.client;
 
+import static net.minecraft.client.gui.GuiComponent.blit;
+
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.PoseStack;
 import dev.shadowsoffire.attributeslib.ALConfig;
@@ -172,23 +174,22 @@ import java.util.UUID;
 import javax.annotation.Nullable;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.ImageButton;
-import net.minecraft.client.gui.components.Renderable;
 import net.minecraft.client.gui.components.events.GuiEventListener;
+import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
-import net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner;
 import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.resources.language.I18n;
-import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.Registry;
 import net.minecraft.locale.Language;
-import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.Style;
+import net.minecraft.network.chat.TextComponent;
+import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
 import net.minecraft.util.Mth;
@@ -202,13 +203,15 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraftforge.registries.ForgeRegistries;
 
-public class AttributesGui implements Renderable, GuiEventListener {
+public class AttributesGui extends Screen {
 
     public static final ResourceLocation TEXTURES =
             AttributesLib.loc("textures/gui/attributes_gui.png");
     public static final int ENTRY_HEIGHT = 22;
     public static final int MAX_ENTRIES = 6;
     public static final int WIDTH = 131;
+    public static final int IMAGE_WIDTH = 256;
+    public static final int IMAGE_HEIGHT = 256;
 
     // There's only one player, so we can just happily track if this menu was open via static field.
     // It isn't persistent through sessions, but that's not a huge issue.
@@ -221,10 +224,10 @@ public class AttributesGui implements Renderable, GuiEventListener {
 
     protected final InventoryScreen parent;
     protected final Player player;
-    protected final Font font = Minecraft.getInstance().font;
     protected final ImageButton toggleBtn;
     protected final ImageButton recipeBookButton;
     protected final HideUnchangedButton hideUnchangedBtn;
+    private final MultiBufferSource.BufferSource bufferSource;
 
     protected int leftPos, topPos;
     protected boolean scrolling;
@@ -235,9 +238,15 @@ public class AttributesGui implements Renderable, GuiEventListener {
     protected long lastRenderTick = -1;
 
     public AttributesGui(InventoryScreen parent) {
+        super(parent.getTitle());
         this.parent = parent;
+        this.bufferSource = Minecraft.getInstance().renderBuffers().bufferSource();
+        this.font = Minecraft.getInstance().font;
         this.player = Minecraft.getInstance().player;
+        this.itemRenderer = Minecraft.getInstance().getItemRenderer();
         this.refreshData();
+        this.width = WIDTH;
+        this.height = parent.height;
         this.leftPos = parent.getGuiLeft() - WIDTH;
         this.topPos = parent.getGuiTop();
         this.toggleBtn =
@@ -250,12 +259,12 @@ public class AttributesGui implements Renderable, GuiEventListener {
                         0,
                         10,
                         TEXTURES,
-                        256,
-                        256,
+                        IMAGE_WIDTH,
+                        IMAGE_HEIGHT,
                         btn -> {
                             this.toggleVisibility();
                         },
-                        Component.translatable("attributeslib.gui.show_attributes")) {
+                        new TranslatableComponent("attributeslib.gui.show_attributes")) {
                     @Override
                     public void setFocused(boolean pFocused) {}
                 };
@@ -269,13 +278,14 @@ public class AttributesGui implements Renderable, GuiEventListener {
     @SuppressWarnings("deprecation")
     public void refreshData() {
         this.data.clear();
+
         ForgeRegistries.ATTRIBUTES.getValues().stream()
                 .map(this.player::getAttribute)
                 .filter(Objects::nonNull)
                 .filter(
                         ai ->
                                 !ALConfig.hiddenAttributes.contains(
-                                        BuiltInRegistries.ATTRIBUTE.getKey(ai.getAttribute())))
+                                        Registry.ATTRIBUTE.getKey(ai.getAttribute())))
                 .filter(ai -> !hideUnchanged || (ai.getBaseValue() != ai.getValue()))
                 .forEach(this.data::add);
         this.data.sort(this::compareAttrs);
@@ -319,9 +329,9 @@ public class AttributesGui implements Renderable, GuiEventListener {
     }
 
     @Override
-    public void render(GuiGraphics gfx, int mouseX, int mouseY, float partialTicks) {
-        this.toggleBtn.setX(this.parent.getGuiLeft() + 63);
-        this.toggleBtn.setY(this.parent.getGuiTop() + 10);
+    public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTicks) {
+        this.toggleBtn.x = this.parent.getGuiLeft() + 63;
+        this.toggleBtn.y = this.parent.getGuiTop() + 10;
         if (this.parent.getRecipeBookComponent().isVisible()) this.open = false;
         wasOpen = this.open;
         if (!this.open) return;
@@ -333,20 +343,22 @@ public class AttributesGui implements Renderable, GuiEventListener {
         RenderSystem.setShaderTexture(0, TEXTURES);
         int left = this.leftPos;
         int top = this.topPos;
-        gfx.blit(TEXTURES, left, top, 0, 0, WIDTH, 166);
+        blit(poseStack, left, top, 0, 0, WIDTH, 166, IMAGE_HEIGHT, IMAGE_HEIGHT);
         int scrollbarPos = (int) (117 * scrollOffset);
-        gfx.blit(
-                TEXTURES,
+        blit(
+                poseStack,
                 left + 111,
                 top + 16 + scrollbarPos,
                 244,
                 this.isScrollBarActive() ? 0 : 15,
                 12,
-                15);
+                15,
+                IMAGE_WIDTH,
+                IMAGE_HEIGHT);
         int idx = this.startIndex;
         while (idx < this.startIndex + MAX_ENTRIES && idx < this.data.size()) {
             this.renderEntry(
-                    gfx,
+                    poseStack,
                     this.data.get(idx),
                     this.leftPos + 8,
                     this.topPos + 16 + ENTRY_HEIGHT * (idx - this.startIndex),
@@ -354,37 +366,36 @@ public class AttributesGui implements Renderable, GuiEventListener {
                     mouseY);
             idx++;
         }
-        this.renderTooltip(gfx, mouseX, mouseY);
-        gfx.drawString(
-                font,
-                Component.translatable("attributeslib.gui.attributes"),
+        this.renderTooltip(poseStack, mouseX, mouseY);
+        font.draw(
+                poseStack,
+                new TranslatableComponent("attributeslib.gui.attributes"),
                 this.leftPos + 8,
                 this.topPos + 5,
-                0x404040,
-                false);
-        gfx.drawString(
-                font,
-                Component.literal("Hide Unchanged"),
+                0x404040);
+        font.draw(
+                poseStack,
+                new TextComponent("Hide Unchanged"),
                 this.leftPos + 20,
                 this.topPos + 152,
-                0x404040,
-                false);
+                0x404040);
     }
 
     @SuppressWarnings("deprecation")
-    protected void renderTooltip(GuiGraphics gfx, int mouseX, int mouseY) {
+    protected void renderTooltip(PoseStack poseStack, int mouseX, int mouseY) {
         AttributeInstance inst = this.getHoveredSlot(mouseX, mouseY);
         if (inst != null) {
+
             boolean isDynamic =
-                    BuiltInRegistries.ATTRIBUTE
-                            .wrapAsHolder(inst.getAttribute())
-                            .is(ALObjects.Tags.DYNAMIC_BASE_ATTRIBUTES);
+                    Registry.ATTRIBUTE
+                            .getKey(inst.getAttribute())
+                            .equals(ALObjects.Tags.DYNAMIC_BASE_ATTTE);
 
             Attribute attr = inst.getAttribute();
             IFormattableAttribute fAttr = (IFormattableAttribute) attr;
             List<Component> list = new ArrayList<>();
             MutableComponent name =
-                    Component.translatable(attr.getDescriptionId())
+                    new TranslatableComponent(attr.getDescriptionId())
                             .withStyle(
                                     Style.EMPTY
                                             .withColor(ChatFormatting.GOLD)
@@ -392,7 +403,7 @@ public class AttributesGui implements Renderable, GuiEventListener {
 
             if (isDynamic) {
                 name.append(
-                        Component.literal((" (dynamic)"))
+                        new TextComponent((" (dynamic)"))
                                 .withStyle(
                                         Style.EMPTY
                                                 .withColor(ChatFormatting.DARK_GRAY)
@@ -400,9 +411,10 @@ public class AttributesGui implements Renderable, GuiEventListener {
             }
 
             if (AttributesLib.getTooltipFlag().isAdvanced()) {
+
                 Style style = Style.EMPTY.withColor(ChatFormatting.GRAY).withUnderlined(false);
                 name.append(
-                        Component.literal(" [" + BuiltInRegistries.ATTRIBUTE.getKey(attr) + "]")
+                        new TextComponent(" [" + ForgeRegistries.ATTRIBUTES.getKey(attr) + "]")
                                 .withStyle(style));
             }
 
@@ -412,12 +424,12 @@ public class AttributesGui implements Renderable, GuiEventListener {
 
             if (I18n.exists(key)) {
                 Component txt =
-                        Component.translatable(key)
+                        new TranslatableComponent(key)
                                 .withStyle(ChatFormatting.YELLOW, ChatFormatting.ITALIC);
                 list.add(txt);
             } else if (AttributesLib.getTooltipFlag().isAdvanced()) {
                 Component txt =
-                        Component.literal(key)
+                        new TextComponent(key)
                                 .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC);
                 list.add(txt);
             }
@@ -440,26 +452,26 @@ public class AttributesGui implements Renderable, GuiEventListener {
                             .withStyle(ChatFormatting.GRAY);
 
             if (!isDynamic) {
-                list.add(CommonComponents.EMPTY);
+                list.add(new TextComponent(""));
                 list.add(
-                        Component.translatable("attributeslib.gui.current", valueComp)
+                        new TranslatableComponent("attributeslib.gui.current", valueComp)
                                 .withStyle(ChatFormatting.GRAY));
 
                 Component base =
-                        Component.translatable("attributeslib.gui.base", baseComp)
+                        new TranslatableComponent("attributeslib.gui.base", baseComp)
                                 .withStyle(ChatFormatting.GRAY);
 
                 if (attr instanceof RangedAttribute ra) {
                     Component min =
                             fAttr.toValueComponent(
                                     null, ra.getMinValue(), AttributesLib.getTooltipFlag());
-                    min = Component.translatable("attributeslib.gui.min", min);
+                    min = new TranslatableComponent("attributeslib.gui.min", min);
                     Component max =
                             fAttr.toValueComponent(
                                     null, ra.getMaxValue(), AttributesLib.getTooltipFlag());
-                    max = Component.translatable("attributeslib.gui.max", max);
+                    max = new TranslatableComponent("attributeslib.gui.max", max);
                     list.add(
-                            Component.translatable("%s \u2507 %s \u2507 %s", base, min, max)
+                            new TranslatableComponent("%s \u2507 %s \u2507 %s", base, min, max)
                                     .withStyle(ChatFormatting.GRAY));
                 } else {
                     list.add(base);
@@ -472,9 +484,9 @@ public class AttributesGui implements Renderable, GuiEventListener {
             }
 
             if (inst.getModifiers().stream().anyMatch(modif -> modif.getAmount() != 0)) {
-                this.addComp(CommonComponents.EMPTY, finalTooltip);
+                this.addComp(new TextComponent(""), finalTooltip);
                 this.addComp(
-                        Component.translatable("attributeslib.gui.modifiers")
+                        new TranslatableComponent("attributeslib.gui.modifiers")
                                 .withStyle(ChatFormatting.GOLD),
                         finalTooltip);
 
@@ -524,7 +536,7 @@ public class AttributesGui implements Renderable, GuiEventListener {
                             fAttr.toValueComponent(op, opValue, AttributesLib.getTooltipFlag())
                                     .withStyle(color);
                     MutableComponent comp =
-                            Component.translatable(
+                            new TranslatableComponent(
                                             "attributeslib.gui."
                                                     + op.name().toLowerCase(Locale.ROOT),
                                             valueComp2)
@@ -533,32 +545,32 @@ public class AttributesGui implements Renderable, GuiEventListener {
                     numericValues[op.ordinal()] = opValue;
                 }
 
-                this.addComp(CommonComponents.EMPTY, finalTooltip);
+                this.addComp(new TextComponent(""), finalTooltip);
                 this.addComp(
-                        Component.literal("Modifier Formula").withStyle(ChatFormatting.GOLD),
+                        new TextComponent("Modifier Formula").withStyle(ChatFormatting.GOLD),
                         finalTooltip);
 
                 Component base =
                         isDynamic
-                                ? Component.translatable("attributeslib.gui.formula.base")
+                                ? new TranslatableComponent("attributeslib.gui.formula.base")
                                 : baseComp;
                 Component value =
                         isDynamic
-                                ? Component.translatable("attributeslib.gui.formula.value")
+                                ? new TranslatableComponent("attributeslib.gui.formula.value")
                                 : valueComp;
 
                 Component formula = buildFormula(base, value, numericValues);
                 this.addComp(formula, finalTooltip);
             } else if (isDynamic) {
-                this.addComp(CommonComponents.EMPTY, finalTooltip);
+                this.addComp(new TextComponent(""), finalTooltip);
                 this.addComp(
-                        Component.translatable("attributeslib.gui.no_modifiers")
+                        new TranslatableComponent("attributeslib.gui.no_modifiers")
                                 .withStyle(ChatFormatting.GOLD),
                         finalTooltip);
             }
 
-            gfx.renderTooltipInternal(
-                    font,
+            renderTooltipInternal(
+                    poseStack,
                     finalTooltip,
                     this.leftPos
                             - 16
@@ -566,13 +578,12 @@ public class AttributesGui implements Renderable, GuiEventListener {
                                     .map(c -> c.getWidth(this.font))
                                     .max(Integer::compare)
                                     .get(),
-                    mouseY,
-                    DefaultTooltipPositioner.INSTANCE);
+                    mouseY);
         }
     }
 
     private void addComp(Component comp, List<ClientTooltipComponent> finalTooltip) {
-        if (comp == CommonComponents.EMPTY) {
+        if (Objects.equals(comp, new TextComponent(""))) {
             finalTooltip.add(ClientTooltipComponent.create(comp.getVisualOrderText()));
         } else {
             for (FormattedText fTxt :
@@ -585,11 +596,21 @@ public class AttributesGui implements Renderable, GuiEventListener {
 
     @SuppressWarnings("deprecation")
     private void renderEntry(
-            GuiGraphics gfx, AttributeInstance inst, int x, int y, int mouseX, int mouseY) {
+            PoseStack poseStack, AttributeInstance inst, int x, int y, int mouseX, int mouseY) {
         boolean hover = this.getHoveredSlot(mouseX, mouseY) == inst;
-        gfx.blit(TEXTURES, x, y, 142, hover ? ENTRY_HEIGHT : 0, 100, ENTRY_HEIGHT);
+        RenderSystem.setShaderTexture(0, TEXTURES);
+        blit(
+                poseStack,
+                x,
+                y,
+                142,
+                hover ? ENTRY_HEIGHT : 0,
+                100,
+                ENTRY_HEIGHT,
+                IMAGE_WIDTH,
+                IMAGE_HEIGHT);
 
-        Component txt = Component.translatable(inst.getAttribute().getDescriptionId());
+        Component txt = new TranslatableComponent(inst.getAttribute().getDescriptionId());
         int splitWidth = 60;
         List<FormattedCharSequence> lines = this.font.split(txt, splitWidth);
         // We can only actually display two lines here, but we need to forcibly create two lines and
@@ -599,40 +620,38 @@ public class AttributesGui implements Renderable, GuiEventListener {
             lines = this.font.split(txt, splitWidth);
         }
 
-        PoseStack stack = gfx.pose();
-
-        stack.pushPose();
+        poseStack.pushPose();
         float scale = 1;
         int maxWidth = lines.stream().map(this.font::width).max(Integer::compareTo).get();
         if (maxWidth > 66) {
             scale = 66F / maxWidth;
-            stack.scale(scale, scale, 1);
+            poseStack.scale(scale, scale, 1);
         }
 
         for (int i = 0; i < lines.size(); i++) {
-            var line = lines.get(i);
+            FormattedCharSequence line = lines.get(i);
             float width = this.font.width(line) * scale;
             float lineX = (x + 1 + (68 - width) / 2) / scale;
             float lineY = (y + (lines.size() == 1 ? 7 : 2) + i * 10) / scale;
-            gfx.drawString(font, line, lineX, lineY, 0x404040, false);
+            font.draw(poseStack, line, lineX, lineY, 0x404040);
         }
-        stack.popPose();
-        stack.pushPose();
+        poseStack.popPose();
+        poseStack.pushPose();
 
         var attr = (IFormattableAttribute) inst.getAttribute();
         MutableComponent value =
                 attr.toValueComponent(null, inst.getValue(), TooltipFlag.Default.NORMAL);
 
-        if (BuiltInRegistries.ATTRIBUTE
-                .wrapAsHolder(inst.getAttribute())
-                .is(ALObjects.Tags.DYNAMIC_BASE_ATTRIBUTES)) {
-            value = Component.literal("\uFFFD");
+        if (Registry.ATTRIBUTE
+                .getKey(inst.getAttribute())
+                .equals(ALObjects.Tags.DYNAMIC_BASE_ATTTE)) {
+            value = new TextComponent("\uFFFD");
         }
 
         scale = 1;
         if (this.font.width(value) > 27) {
             scale = 27F / this.font.width(value);
-            stack.scale(scale, scale, 1);
+            poseStack.scale(scale, scale, 1);
         }
 
         int color = 0xFFFFFF;
@@ -645,14 +664,14 @@ public class AttributesGui implements Renderable, GuiEventListener {
         } else if (attr instanceof BooleanAttribute && inst.getValue() > 0) {
             color = 0x55DD55;
         }
-        gfx.drawString(
-                font,
+        font.drawShadow(
+                poseStack,
                 value,
                 (int) ((x + 72 + (27 - this.font.width(value) * scale) / 2) / scale),
                 (int) ((y + 7) / scale),
-                color,
-                true);
-        stack.popPose();
+                color);
+
+        poseStack.popPose();
     }
 
     @Override
@@ -791,7 +810,7 @@ public class AttributesGui implements Renderable, GuiEventListener {
             formula = colored(mulTotalStr + " * ", color) + withParens;
         }
 
-        return Component.translatable("%1$s = " + formula, value, base)
+        return new TranslatableComponent("%1$s = " + formula, value, base)
                 .withStyle(ChatFormatting.GRAY);
     }
 
@@ -809,7 +828,6 @@ public class AttributesGui implements Renderable, GuiEventListener {
     }
 
     public class HideUnchangedButton extends ImageButton {
-
         public HideUnchangedButton(int pX, int pY) {
             super(
                     pX,
@@ -820,10 +838,10 @@ public class AttributesGui implements Renderable, GuiEventListener {
                     20,
                     10,
                     TEXTURES,
-                    256,
-                    256,
+                    IMAGE_WIDTH,
+                    IMAGE_HEIGHT,
                     null,
-                    Component.literal("Hide Unchanged Attributes"));
+                    new TextComponent("Hide Unchanged Attributes"));
             this.visible = false;
         }
 
@@ -833,7 +851,7 @@ public class AttributesGui implements Renderable, GuiEventListener {
         }
 
         @Override
-        public void renderWidget(GuiGraphics gfx, int pMouseX, int pMouseY, float pPartialTick) {
+        public void render(PoseStack stack, int pMouseX, int pMouseY, float pPartialTick) {
             int u = 131, v = 20;
             int vOffset = hideUnchanged ? 0 : 10;
             if (this.isHovered) {
@@ -841,19 +859,10 @@ public class AttributesGui implements Renderable, GuiEventListener {
             }
 
             RenderSystem.enableDepthTest();
-            PoseStack pose = gfx.pose();
-            pose.pushPose();
-            pose.translate(0, 0, 100);
-            gfx.blit(TEXTURES, this.getX(), this.getY(), u, v + vOffset, 10, 10, 256, 256);
-            pose.popPose();
+            stack.pushPose();
+            stack.translate(0, 0, 100);
+            blit(stack, this.x, this.y, u, v + vOffset, 10, 10, IMAGE_WIDTH, IMAGE_HEIGHT);
+            stack.popPose();
         }
-    }
-
-    @Override
-    public void setFocused(boolean pFocused) {}
-
-    @Override
-    public boolean isFocused() {
-        return false;
     }
 }

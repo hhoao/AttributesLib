@@ -159,9 +159,9 @@ import dev.shadowsoffire.attributeslib.AttributesLib;
 import dev.shadowsoffire.attributeslib.api.IFormattableAttribute;
 import java.util.List;
 import net.minecraft.ChatFormatting;
-import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
-import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.network.chat.TextComponent;
+import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.item.ItemStack;
@@ -179,26 +179,25 @@ public class PotionUtilsMixin {
      * Target Line: <code>if (!list.isEmpty()) {</code>.
      *
      * @param list The potion's attribute modifiers.
-     * @param stack The potion stack.
+     * @param itemStack The potion stack.
      * @param tooltips The tooltip list.
      * @param durationFactor The duration factor of the potion.
      * @return True, unconditionally, so that the vanilla tooltip logic is ignored.
      * @see PotionUtils#addPotionTooltip(ItemStack, List, float)
-     * @see PotionUtils#addPotionTooltip(List, List, float)
      */
     @Redirect(
-            method = "addPotionTooltip(Ljava/util/List;Ljava/util/List;F)V",
+            method = "addPotionTooltip(Lnet/minecraft/world/item/ItemStack;Ljava/util/List;F)V",
             at = @At(value = "INVOKE", target = "Ljava/util/List;isEmpty()Z", ordinal = 1),
             require = 1)
     private static boolean attributeslib_potionTooltips(
             List<Pair<Attribute, AttributeModifier>> list,
-            List<MobEffectInstance> effects,
+            ItemStack itemStack,
             List<Component> tooltips,
             float durationFactor) {
         if (!list.isEmpty()) {
-            tooltips.add(CommonComponents.EMPTY);
+            tooltips.add(new TextComponent(""));
             tooltips.add(
-                    Component.translatable("potion.whenDrank")
+                    new TranslatableComponent("potion.whenDrank")
                             .withStyle(ChatFormatting.DARK_PURPLE));
 
             for (Pair<Attribute, AttributeModifier> pair : list) {

@@ -161,6 +161,8 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.TextComponent;
+import net.minecraft.network.chat.TranslatableComponent;
 import net.minecraft.world.entity.MobType;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
@@ -201,7 +203,7 @@ public interface IFormattableAttribute {
         // For Swim Speed, the implementation is percent-based, but no additional tricks are
         // performed.
         if (this == Attributes.KNOCKBACK_RESISTANCE || this == ForgeMod.SWIM_SPEED.get()) {
-            return Component.translatable(
+            return new TranslatableComponent(
                     "attributeslib.value.percent",
                     ItemStack.ATTRIBUTE_MODIFIER_FORMAT.format(value * 100));
         }
@@ -209,13 +211,13 @@ public interface IFormattableAttribute {
         // However, Speed also operates in that the default is 0.1, not 1, so we have to
         //        // special-case it instead of including it above.
         if (this == Attributes.MOVEMENT_SPEED && isNullOrAddition(op)) {
-            return Component.translatable(
+            return new TranslatableComponent(
                     "attributeslib.value.percent",
                     ItemStack.ATTRIBUTE_MODIFIER_FORMAT.format(value * 1000));
         }
         String key =
                 isNullOrAddition(op) ? "attributeslib.value.flat" : "attributeslib.value.percent";
-        return Component.translatable(
+        return new TranslatableComponent(
                 key,
                 ItemStack.ATTRIBUTE_MODIFIER_FORMAT.format(
                         isNullOrAddition(op) ? value : value * 100));
@@ -242,18 +244,18 @@ public interface IFormattableAttribute {
 
         if (value > 0.0D) {
             comp =
-                    Component.translatable(
+                    new TranslatableComponent(
                                     "attributeslib.modifier.plus",
                                     this.toValueComponent(modif.getOperation(), value, flag),
-                                    Component.translatable(attr.getDescriptionId()))
+                                    new TranslatableComponent(attr.getDescriptionId()))
                             .withStyle(ChatFormatting.BLUE);
         } else {
             value *= -1.0D;
             comp =
-                    Component.translatable(
+                    new TranslatableComponent(
                                     "attributeslib.modifier.take",
                                     this.toValueComponent(modif.getOperation(), value, flag),
-                                    Component.translatable(attr.getDescriptionId()))
+                                    new TranslatableComponent(attr.getDescriptionId()))
                             .withStyle(ChatFormatting.RED);
         }
 
@@ -266,12 +268,13 @@ public interface IFormattableAttribute {
      *
      * @param modif The attribute modifier being converted to a component.
      * @param flag The tooltip flag.
-     * @return The debug component, or {@link CommonComponents#EMPTY} if disabled.
+     * @return The debug component, or {@link CommonComponents#CommonComponents()} CommonComponents}
+     *     if disabled.
      * @apiNote This information is automatically appended to {@link #toComponent(AttributeModifier,
      *     TooltipFlag)}.
      */
     default Component getDebugInfo(AttributeModifier modif, TooltipFlag flag) {
-        Component debugInfo = CommonComponents.EMPTY;
+        Component debugInfo = new TextComponent("");
 
         if (flag.isAdvanced()) {
             // Advanced Tooltips show the underlying operation and the "true" value. We offset
@@ -292,8 +295,8 @@ public interface IFormattableAttribute {
                         case MULTIPLY_TOTAL -> String.format("[x%s]", valueStr);
                     };
             debugInfo =
-                    Component.literal(" ")
-                            .append(Component.literal(txt).withStyle(ChatFormatting.GRAY));
+                    new TextComponent(" ")
+                            .append(new TextComponent(txt).withStyle(ChatFormatting.GRAY));
         }
         return debugInfo;
     }
@@ -301,14 +304,12 @@ public interface IFormattableAttribute {
     /**
      * Gets the specific UUID that represents a "base" (green) modifier for this attribute.
      *
-     * @param modif The attribute modifier being checked.
-     * @param flag The tooltip flag.
      * @return The UUID of the "base" modifier, or null, if no such modifier may exist.
      */
     @Nullable default UUID getBaseUUID() {
         if (this == Attributes.ATTACK_DAMAGE) return AttributeHelper.BASE_ATTACK_DAMAGE;
         else if (this == Attributes.ATTACK_SPEED) return AttributeHelper.BASE_ATTACK_SPEED;
-        else if (this == ForgeMod.ENTITY_REACH.get()) return AttributeHelper.BASE_ENTITY_REACH;
+        else if (this == ForgeMod.REACH_DISTANCE.get()) return AttributeHelper.BASE_ENTITY_REACH;
         return null;
     }
 
@@ -320,7 +321,7 @@ public interface IFormattableAttribute {
      *
      * <p>
      *
-     * @param modif The attribute modifier being converted to a component.
+     * @param merged The attribute modifier being converted to a component.
      * @param flag The tooltip flag.
      * @return The component representation of the passed attribute modifier.
      */
@@ -328,15 +329,15 @@ public interface IFormattableAttribute {
             double value, double entityBase, boolean merged, TooltipFlag flag) {
         Attribute attr = this.ths();
 
-        Component debugInfo = CommonComponents.EMPTY;
+        Component debugInfo = new TextComponent("");
 
         if (flag.isAdvanced() && !merged) {
             // Advanced Tooltips cause us to emit the entity's base value and the base value of the
             // item.
             debugInfo =
-                    Component.literal(" ")
+                    new TextComponent(" ")
                             .append(
-                                    Component.translatable(
+                                    new TranslatableComponent(
                                                     AttributesLib.MODID + ".adv.base",
                                                     ItemStack.ATTRIBUTE_MODIFIER_FORMAT.format(
                                                             entityBase),
@@ -346,10 +347,10 @@ public interface IFormattableAttribute {
         }
 
         MutableComponent comp =
-                Component.translatable(
+                new TranslatableComponent(
                         "attribute.modifier.equals.0",
                         ItemStack.ATTRIBUTE_MODIFIER_FORMAT.format(value),
-                        Component.translatable(attr.getDescriptionId()));
+                        new TranslatableComponent(attr.getDescriptionId()));
 
         return comp.append(debugInfo);
     }
@@ -383,13 +384,13 @@ public interface IFormattableAttribute {
     default void addBonusTooltips(ItemStack stack, Consumer<Component> tooltip, TooltipFlag flag) {
         if (this == Attributes.ATTACK_DAMAGE) {
             float sharpness = EnchantmentHelper.getDamageBonus(stack, MobType.UNDEFINED);
-            Component debugInfo = CommonComponents.EMPTY;
+            Component debugInfo = new TextComponent("");
             if (flag.isAdvanced()) {
                 // Show the user that this fake modifier is from Sharpness.
                 debugInfo =
-                        Component.literal(" ")
+                        new TextComponent(" ")
                                 .append(
-                                        Component.translatable(
+                                        new TranslatableComponent(
                                                         AttributesLib.MODID
                                                                 + ".adv.sharpness_bonus",
                                                         sharpness)
@@ -398,11 +399,11 @@ public interface IFormattableAttribute {
             MutableComponent comp =
                     AttributeHelper.list()
                             .append(
-                                    Component.translatable(
+                                    new TranslatableComponent(
                                                     "attribute.modifier.plus.0",
                                                     ItemStack.ATTRIBUTE_MODIFIER_FORMAT.format(
                                                             sharpness),
-                                                    Component.translatable(
+                                                    new TranslatableComponent(
                                                             this.ths().getDescriptionId()))
                                             .withStyle(ChatFormatting.BLUE));
             tooltip.accept(comp.append(debugInfo));
