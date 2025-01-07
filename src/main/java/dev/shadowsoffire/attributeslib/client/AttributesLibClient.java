@@ -159,6 +159,7 @@ import com.google.common.collect.Multimap;
 import com.mojang.datafixers.util.Pair;
 import dev.shadowsoffire.attributeslib.ALConfig;
 import dev.shadowsoffire.attributeslib.AttributesLib;
+import dev.shadowsoffire.attributeslib.api.ALObjects;
 import dev.shadowsoffire.attributeslib.api.AttributeHelper;
 import dev.shadowsoffire.attributeslib.api.IFormattableAttribute;
 import dev.shadowsoffire.attributeslib.api.client.AddAttributeTooltipsEvent;
@@ -234,12 +235,25 @@ public class AttributesLibClient {
 
     @SubscribeEvent
     public static void particleFactories(ParticleFactoryRegisterEvent e) {
-        //
-        // Minecraft.getInstance().particleEngine.register(ALObjects.Particles.APOTH_CRIT.get(),
-        // ApothCritParticle::new);
-        //        Minecraft.getInstance()
-        //                .particleEngine
-        //                .register(ALObjects.Particles.APOTH_CRIT.get(), ApothCritParticle::new);
+        Minecraft.getInstance()
+                .particleEngine
+                .register(
+                        ALObjects.Particles.APOTH_CRIT.get(),
+                        spriteSet ->
+                                (particleOptions, clientLevel, x, y, z, dx, dy, dz) -> {
+                                    ApothCritParticle apothCritParticle =
+                                            new ApothCritParticle(
+                                                    ALObjects.Particles.APOTH_CRIT.get(),
+                                                    clientLevel,
+                                                    x,
+                                                    y,
+                                                    z,
+                                                    dx,
+                                                    dy,
+                                                    dz);
+                                    apothCritParticle.pickSprite(spriteSet);
+                                    return apothCritParticle;
+                                });
     }
 
     @SubscribeEvent(priority = EventPriority.HIGHEST)
@@ -382,11 +396,11 @@ public class AttributesLibClient {
 
     public static void apothCrit(int entityId) {
         Entity entity = Minecraft.getInstance().level.getEntity(entityId);
+
         if (entity != null) {
-            //            Minecraft.getInstance()
-            //                    .particleEngine
-            //                    .createTrackingEmitter(entity,
-            // ALObjects.Particles.APOTH_CRIT.get());
+            Minecraft.getInstance()
+                    .particleEngine
+                    .createTrackingEmitter(entity, ALObjects.Particles.APOTH_CRIT.get());
         }
     }
 
