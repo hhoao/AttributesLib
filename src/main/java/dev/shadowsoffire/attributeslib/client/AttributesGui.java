@@ -851,7 +851,7 @@ public class AttributesGui extends Screen {
         }
 
         @Override
-        public void render(PoseStack stack, int pMouseX, int pMouseY, float pPartialTick) {
+        public void renderButton(PoseStack stack, int pMouseX, int pMouseY, float pPartialTick) {
             int u = 131, v = 20;
             int vOffset = hideUnchanged ? 0 : 10;
             if (this.isHovered) {
