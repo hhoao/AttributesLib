@@ -154,8 +154,8 @@
 
 package dev.shadowsoffire.attributeslib.mixin;
 
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.LivingEntity;
 import net.minecraftforge.common.ForgeMod;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -171,10 +171,11 @@ public abstract class EntityMixin {
     @ModifyVariable(
             at = @At("HEAD"),
             method =
-                    "checkFallDamage(DZLnet/minecraft/world/level/block/state/BlockState;Lnet/minecraft/core/BlockPos;)V",
+                    "Lnet/minecraft/entity/Entity;updateFallState(DZLnet/minecraft/block/BlockState;Lnet/minecraft/util/math/BlockPos;)V",
             argsOnly = true)
     public double apoth_checkFallDamageWithGravity(double yMotion) {
-        if (yMotion < 0 && (Object) this instanceof LivingEntity le) {
+        if (yMotion < 0 && (Object) this instanceof LivingEntity) {
+            LivingEntity le = (LivingEntity) (Object) this;
             double gravity = le.getAttributeValue(ForgeMod.ENTITY_GRAVITY.get());
             yMotion *= gravity / 0.08D;
             if (gravity <= 0.01D) {

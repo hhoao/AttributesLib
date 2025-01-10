@@ -157,9 +157,9 @@ package dev.shadowsoffire.placebo.network;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent;
-import net.minecraftforge.network.simple.SimpleChannel;
+import net.minecraft.network.PacketBuffer;
+import net.minecraftforge.fml.network.NetworkEvent;
+import net.minecraftforge.fml.network.simple.SimpleChannel;
 
 public class MessageHelper {
 
@@ -178,8 +178,8 @@ public class MessageHelper {
             SimpleChannel channel,
             int id,
             Class<MSG> messageType,
-            BiConsumer<MSG, FriendlyByteBuf> encoder,
-            Function<FriendlyByteBuf, MSG> decoder,
+            BiConsumer<MSG, PacketBuffer> encoder,
+            Function<PacketBuffer, MSG> decoder,
             BiConsumer<MSG, Supplier<NetworkEvent.Context>> messageConsumer) {
         channel.registerMessage(id, messageType, encoder, decoder, messageConsumer);
     }

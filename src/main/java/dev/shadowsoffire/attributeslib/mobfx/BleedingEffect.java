@@ -157,23 +157,25 @@ package dev.shadowsoffire.attributeslib.mobfx;
 import static dev.shadowsoffire.attributeslib.impl.AttributeEvents.src;
 
 import dev.shadowsoffire.attributeslib.api.ALObjects;
-import net.minecraft.world.effect.MobEffect;
-import net.minecraft.world.effect.MobEffectCategory;
-import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.potion.Effect;
+import net.minecraft.potion.EffectType;
 
-public class BleedingEffect extends MobEffect {
+public class BleedingEffect extends Effect {
 
     public BleedingEffect() {
-        super(MobEffectCategory.HARMFUL, 0x8B0000);
+        super(EffectType.HARMFUL, 0x8B0000);
     }
 
     @Override
-    public void applyEffectTick(LivingEntity entity, int amplifier) {
-        entity.hurt(src(ALObjects.DamageTypes.BLEEDING, entity.getLastHurtMob()), 1.0F + amplifier);
+    public void performEffect(LivingEntity entity, int amplifier) {
+        entity.attackEntityFrom(
+                src(ALObjects.DamageTypes.BLEEDING, entity.getLastAttackedEntity()),
+                1.0F + amplifier);
     }
 
     @Override
-    public boolean isDurationEffectTick(int duration, int amplifier) {
+    public boolean isReady(int duration, int amplifier) {
         return duration % 40 == 0;
     }
 }

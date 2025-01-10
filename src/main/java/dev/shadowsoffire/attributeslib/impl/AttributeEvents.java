@@ -159,7 +159,6 @@ import dev.shadowsoffire.attributeslib.AttributesLib;
 import dev.shadowsoffire.attributeslib.api.ALObjects;
 import dev.shadowsoffire.attributeslib.api.AttributeChangedValueEvent;
 import dev.shadowsoffire.attributeslib.api.AttributeHelper;
-import dev.shadowsoffire.attributeslib.api.IFormattableAttribute;
 import dev.shadowsoffire.attributeslib.packet.CritParticleMessage;
 import dev.shadowsoffire.attributeslib.util.AttributesUtil;
 import dev.shadowsoffire.attributeslib.util.IFlying;
@@ -167,35 +166,29 @@ import dev.shadowsoffire.placebo.network.PacketDistro;
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import java.util.Random;
 import java.util.concurrent.ThreadLocalRandom;
-import net.minecraft.core.particles.ParticleTypes;
-import net.minecraft.server.level.ServerLevel;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.sounds.SoundSource;
-import net.minecraft.util.Mth;
-import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.damagesource.EntityDamageSource;
-import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.effect.MobEffects;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EquipmentSlot;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.ai.attributes.AttributeInstance;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation;
-import net.minecraft.world.entity.ai.attributes.Attributes;
-import net.minecraft.world.entity.ai.goal.MeleeAttackGoal;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.entity.projectile.AbstractArrow;
-import net.minecraft.world.entity.projectile.Projectile;
-import net.minecraft.world.item.ElytraItem;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.ProjectileWeaponItem;
-import net.minecraft.world.item.TridentItem;
-import net.minecraft.world.level.GameType;
-import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.ai.attributes.AttributeModifier;
+import net.minecraft.entity.ai.attributes.ModifiableAttributeInstance;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.ServerPlayerEntity;
+import net.minecraft.entity.projectile.AbstractArrowEntity;
+import net.minecraft.entity.projectile.ProjectileEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.ShootableItem;
+import net.minecraft.item.TridentItem;
+import net.minecraft.particles.ParticleTypes;
+import net.minecraft.potion.EffectInstance;
+import net.minecraft.potion.Effects;
+import net.minecraft.util.DamageSource;
+import net.minecraft.util.EntityDamageSource;
+import net.minecraft.util.SoundCategory;
+import net.minecraft.util.math.EntityRayTraceResult;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.world.GameType;
+import net.minecraft.world.server.ServerWorld;
 import net.minecraftforge.common.ForgeMod;
 import net.minecraftforge.event.AddReloadListenerEvent;
-import net.minecraftforge.event.ItemAttributeModifierEvent;
 import net.minecraftforge.event.entity.EntityJoinWorldEvent;
 import net.minecraftforge.event.entity.ProjectileImpactEvent;
 import net.minecraftforge.event.entity.living.LivingAttackEvent;
@@ -219,8 +212,7 @@ public class AttributeEvents {
     //    }
 
     private boolean canBenefitFromDrawSpeed(ItemStack stack) {
-        return stack.getItem() instanceof ProjectileWeaponItem
-                || stack.getItem() instanceof TridentItem;
+        return stack.getItem() instanceof ShootableItem || stack.getItem() instanceof TridentItem;
     }
 
     /**
@@ -230,7 +222,8 @@ public class AttributeEvents {
      */
     @SubscribeEvent
     public void drawSpeed(LivingEntityUseItemEvent.Tick e) {
-        if (e.getEntity() instanceof Player player) {
+        if (e.getEntity() instanceof PlayerEntity) {
+            PlayerEntity player = (PlayerEntity) e.getEntity();
             double t = player.getAttribute(ALObjects.Attributes.DRAW_SPEED.get()).getValue() - 1;
             if (t == 0 || !this.canBenefitFromDrawSpeed(e.getItem())) return;
 
@@ -247,12 +240,12 @@ public class AttributeEvents {
             }
 
             if (t > 0.5F) { // Special case 0.5F so that values in (0.5, 1) don't round to 1.
-                if (e.getEntity().tickCount % 2 == 0) e.setDuration(e.getDuration() + offset);
+                if (e.getEntity().ticksExisted % 2 == 0) e.setDuration(e.getDuration() + offset);
                 t -= 0.5F;
             }
 
             int mod = (int) Math.floor(1 / Math.min(1, t));
-            if (e.getEntity().tickCount % mod == 0) e.setDuration(e.getDuration() + offset);
+            if (e.getEntity().ticksExisted % mod == 0) e.setDuration(e.getDuration() + offset);
             t--;
         }
     }
@@ -260,8 +253,9 @@ public class AttributeEvents {
     /** This event handler manages the Life Steal and Overheal attributes. */
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void lifeStealOverheal(LivingHurtEvent e) {
-        if (e.getSource().getDirectEntity() instanceof LivingEntity attacker
+        if (e.getSource().getImmediateSource() instanceof LivingEntity
                 && AttributesUtil.isPhysicalDamage(e.getSource())) {
+            LivingEntity attacker = (LivingEntity) e.getSource().getImmediateSource();
             float lifesteal =
                     (float) attacker.getAttributeValue(ALObjects.Attributes.LIFE_STEAL.get());
             float dmg = Math.min(e.getAmount(), e.getEntityLiving().getHealth());
@@ -295,11 +289,12 @@ public class AttributeEvents {
      */
     @SubscribeEvent(priority = EventPriority.LOWEST)
     public void meleeDamageAttributes(LivingAttackEvent e) {
-        if (e.getEntityLiving().level.isClientSide || e.getEntityLiving().isDeadOrDying()) return;
+        if (e.getEntityLiving().world.isRemote || e.getEntityLiving().getShouldBeDead()) return;
         if (noRecurse) return;
         noRecurse = true;
-        if (e.getSource().getDirectEntity() instanceof LivingEntity attacker
+        if (e.getSource().getImmediateSource() instanceof LivingEntity
                 && AttributesUtil.isPhysicalDamage(e.getSource())) {
+            LivingEntity attacker = (LivingEntity) e.getSource().getImmediateSource();
             float hpDmg =
                     (float)
                             attacker.getAttributeValue(
@@ -309,33 +304,33 @@ public class AttributeEvents {
             float coldDmg =
                     (float) attacker.getAttributeValue(ALObjects.Attributes.COLD_DAMAGE.get());
             LivingEntity target = e.getEntityLiving();
-            int time = target.invulnerableTime;
-            target.invulnerableTime = 0;
+            int time = target.hurtResistantTime;
+            target.hurtResistantTime = 0;
             if (hpDmg > 0.001 && AttributesLib.localAtkStrength >= 0.85F) {
-                target.hurt(
+                target.attackEntityFrom(
                         src(ALObjects.DamageTypes.CURRENT_HP_DAMAGE, attacker),
                         AttributesLib.localAtkStrength * hpDmg * target.getHealth());
             }
-            target.invulnerableTime = 0;
+            target.hurtResistantTime = 0;
             if (fireDmg > 0.001 && AttributesLib.localAtkStrength >= 0.55F) {
-                target.hurt(
+                target.attackEntityFrom(
                         src(ALObjects.DamageTypes.FIRE_DAMAGE, attacker),
                         AttributesLib.localAtkStrength * fireDmg);
-                target.setRemainingFireTicks(target.getRemainingFireTicks() + (int) (10 * fireDmg));
+                target.setFire(target.getFireTimer() + (int) (10 * fireDmg));
             }
-            target.invulnerableTime = 0;
+            target.hurtResistantTime = 0;
             if (coldDmg > 0.001 && AttributesLib.localAtkStrength >= 0.55F) {
-                target.hurt(
+                target.attackEntityFrom(
                         src(ALObjects.DamageTypes.COLD_DAMAGE, attacker),
                         AttributesLib.localAtkStrength * coldDmg);
-                target.addEffect(
-                        new MobEffectInstance(
-                                MobEffects.MOVEMENT_SLOWDOWN,
+                target.addPotionEffect(
+                        new EffectInstance(
+                                Effects.SLOWNESS,
                                 (int) (15 * coldDmg),
-                                Mth.floor(coldDmg / 5)));
+                                MathHelper.floor(coldDmg / 5)));
             }
-            target.invulnerableTime = time;
-            if (target.isDeadOrDying()) {
+            target.hurtResistantTime = time;
+            if (target.getShouldBeDead()) {
                 target.getPersistentData().putBoolean("apoth.killed_by_aux_dmg", true);
             }
         }
@@ -343,7 +338,7 @@ public class AttributeEvents {
     }
 
     public static DamageSource src(DamageSource type, LivingEntity entity) {
-        return new EntityDamageSource(type.msgId, entity);
+        return new EntityDamageSource(type.damageType, entity);
     }
 
     /**
@@ -351,7 +346,10 @@ public class AttributeEvents {
      */
     @SubscribeEvent(priority = EventPriority.HIGH)
     public void apothCriticalStrike(LivingHurtEvent e) {
-        LivingEntity attacker = e.getSource().getEntity() instanceof LivingEntity le ? le : null;
+        LivingEntity attacker =
+                e.getSource().getImmediateSource() instanceof LivingEntity
+                        ? (LivingEntity) e.getSource().getImmediateSource()
+                        : null;
         if (attacker == null) return;
 
         double critChance = attacker.getAttributeValue(ALObjects.Attributes.CRIT_CHANCE.get());
@@ -372,12 +370,12 @@ public class AttributeEvents {
 
         e.setAmount(e.getAmount() * critMult);
 
-        if (critMult > 1 && !attacker.level.isClientSide) {
+        if (critMult > 1 && !attacker.world.isRemote) {
             PacketDistro.sendToTracking(
                     AttributesLib.CHANNEL,
-                    new CritParticleMessage(e.getEntity().getId()),
-                    (ServerLevel) attacker.level,
-                    e.getEntity().blockPosition());
+                    new CritParticleMessage(e.getEntity().getEntityId()),
+                    (ServerWorld) attacker.world,
+                    e.getEntity().getPosition());
         }
     }
 
@@ -420,7 +418,7 @@ public class AttributeEvents {
 
     @SubscribeEvent(priority = EventPriority.HIGH)
     public void mobXp(LivingExperienceDropEvent e) {
-        Player player = e.getAttackingPlayer();
+        PlayerEntity player = e.getAttackingPlayer();
         if (player == null) return;
         double xpMult =
                 e.getAttackingPlayer()
@@ -445,15 +443,17 @@ public class AttributeEvents {
      */
     @SubscribeEvent
     public void arrow(EntityJoinWorldEvent e) {
-        if (e.getEntity() instanceof AbstractArrow arrow) {
-            if (arrow.level.isClientSide
+        if (e.getEntity() instanceof AbstractArrowEntity) {
+            AbstractArrowEntity arrow = (AbstractArrowEntity) e.getEntity();
+            if (arrow.world.isRemote
                     || arrow.getPersistentData().getBoolean("attributeslib.arrow.done")) return;
-            if (arrow.getOwner() instanceof LivingEntity le) {
-                arrow.setBaseDamage(
-                        arrow.getBaseDamage()
+            if (arrow.func_234616_v_() instanceof LivingEntity) {
+                LivingEntity le = (LivingEntity) arrow.func_234616_v_();
+                arrow.setDamage(
+                        arrow.getDamage()
                                 * le.getAttributeValue(ALObjects.Attributes.ARROW_DAMAGE.get()));
-                arrow.setDeltaMovement(
-                        arrow.getDeltaMovement()
+                arrow.setMotion(
+                        arrow.getMotion()
                                 .scale(
                                         le.getAttributeValue(
                                                 ALObjects.Attributes.ARROW_VELOCITY.get())));
@@ -464,23 +464,26 @@ public class AttributeEvents {
 
     /** Copied from {@link MeleeAttackGoal#getAttackReachSqr} */
     private static double getAttackReachSqr(Entity attacker, LivingEntity pAttackTarget) {
-        return attacker.getBbWidth() * 2.0F * attacker.getBbWidth() * 2.0F
-                + pAttackTarget.getBbWidth();
+        return attacker.getWidth() * 2.0F * attacker.getWidth() * 2.0F + pAttackTarget.getWidth();
     }
 
     /** Handles {@link ALObjects.Attributes#DODGE_CHANCE} for melee attacks. */
     @SubscribeEvent(priority = EventPriority.HIGH)
     public void dodge(LivingAttackEvent e) {
         LivingEntity target = e.getEntityLiving();
-        if (target.level.isClientSide) return;
-        Entity attacker = e.getSource().getDirectEntity();
+        if (target.world.isRemote) return;
+        Entity attacker = e.getSource().getImmediateSource();
         if (attacker instanceof LivingEntity) {
-            double atkRangeSqr =
-                    attacker instanceof Player p
-                            ? p.getAttribute(ForgeMod.REACH_DISTANCE.get()).getValue()
-                                    * p.getAttribute(ForgeMod.REACH_DISTANCE.get()).getValue()
-                            : getAttackReachSqr(attacker, target);
-            if (attacker.distanceToSqr(target) <= atkRangeSqr && isDodging(target)) {
+            double atkRangeSq;
+            if (attacker instanceof PlayerEntity) {
+                PlayerEntity p = (PlayerEntity) attacker;
+                atkRangeSq =
+                        p.getAttribute(ForgeMod.REACH_DISTANCE.get()).getValue()
+                                * p.getAttribute(ForgeMod.REACH_DISTANCE.get()).getValue();
+            } else {
+                atkRangeSq = getAttackReachSqr(attacker, target);
+            }
+            if (attacker.getDistanceSq(target) <= atkRangeSq && isDodging(target)) {
                 this.onDodge(target);
                 e.setCanceled(true);
             }
@@ -491,8 +494,11 @@ public class AttributeEvents {
     @SubscribeEvent(priority = EventPriority.HIGH)
     public void dodge(ProjectileImpactEvent e) {
         Entity target =
-                e.getRayTraceResult() instanceof EntityHitResult entRes ? entRes.getEntity() : null;
-        if (target instanceof LivingEntity lvTarget) {
+                e.getRayTraceResult() instanceof EntityRayTraceResult
+                        ? ((EntityRayTraceResult) e.getRayTraceResult()).getEntity()
+                        : null;
+        if (target instanceof LivingEntity) {
+            LivingEntity lvTarget = (LivingEntity) target;
             // We can skip the distance check for projectiles, as "Projectile Impact" means the
             // projectile is on the target.
             if (isDodging(lvTarget)) {
@@ -503,21 +509,22 @@ public class AttributeEvents {
     }
 
     private void onDodge(LivingEntity target) {
-        target.level.playSound(
+        target.world.playSound(
                 null,
-                target,
+                target.getPosition(),
                 ALObjects.Sounds.DODGE.get(),
-                SoundSource.NEUTRAL,
+                SoundCategory.NEUTRAL,
                 1,
-                0.7F + target.getRandom().nextFloat() * 0.3F);
-        if (target.level instanceof ServerLevel sl) {
-            double height = target.getBbHeight();
-            double width = target.getBbWidth();
-            sl.sendParticles(
+                0.7F + ThreadLocalRandom.current().nextFloat() * 0.3F);
+        if (target.world instanceof ServerWorld) {
+            ServerWorld sl = (ServerWorld) target.world;
+            double height = target.getHeight();
+            double width = target.getWidth();
+            sl.spawnParticle(
                     ParticleTypes.LARGE_SMOKE,
-                    target.getX() - width / 4,
-                    target.getY(),
-                    target.getZ() - width / 4,
+                    target.getPosX() - width / 4,
+                    target.getPosY(),
+                    target.getPosZ() - width / 4,
                     6,
                     -width / 4,
                     height / 8,
@@ -531,70 +538,29 @@ public class AttributeEvents {
     public void fixMCF9370(ProjectileImpactEvent e) {
         if (e.isCanceled()) {
             Entity target =
-                    e.getRayTraceResult() instanceof EntityHitResult entRes
-                            ? entRes.getEntity()
+                    e.getRayTraceResult() instanceof EntityRayTraceResult
+                            ? ((EntityRayTraceResult) e.getRayTraceResult()).getEntity()
                             : null;
-            Projectile proj = e.getProjectile();
-            if (target != null
-                    && proj instanceof AbstractArrow arrow
-                    && arrow.getPierceLevel() > 0) {
-                if (arrow.piercingIgnoreEntityIds == null) {
-                    arrow.piercingIgnoreEntityIds = new IntOpenHashSet(arrow.getPierceLevel());
+            ProjectileEntity proj = (ProjectileEntity) e.getEntity();
+            if (proj instanceof AbstractArrowEntity) {
+                AbstractArrowEntity arrow = (AbstractArrowEntity) proj;
+                if (target != null
+                        && proj instanceof AbstractArrowEntity
+                        && arrow.getPierceLevel() > 0) {
+                    if (arrow.piercedEntities == null) {
+                        arrow.piercedEntities = new IntOpenHashSet(arrow.getPierceLevel());
+                    }
+                    arrow.piercedEntities.add(target.getEntityId());
                 }
-                arrow.piercingIgnoreEntityIds.add(target.getId());
             }
-        }
-    }
-
-    /** Adds a fake modifier to show Attack Range to weapons with Attack Damage. */
-    @SubscribeEvent
-    public void affixModifiers(ItemAttributeModifierEvent e) {
-        boolean hasBaseAD =
-                e.getModifiers().get(Attributes.ATTACK_DAMAGE).stream()
-                        .filter(
-                                m ->
-                                        ((IFormattableAttribute) Attributes.ATTACK_DAMAGE)
-                                                .getBaseUUID()
-                                                .equals(m.getId()))
-                        .findAny()
-                        .isPresent();
-        if (hasBaseAD) {
-            boolean hasBaseAR =
-                    e.getModifiers().get(ForgeMod.REACH_DISTANCE.get()).stream()
-                            .filter(
-                                    m ->
-                                            ((IFormattableAttribute) ForgeMod.REACH_DISTANCE.get())
-                                                    .getBaseUUID()
-                                                    .equals(m.getId()))
-                            .findAny()
-                            .isPresent();
-            if (!hasBaseAR) {
-                e.addModifier(
-                        ForgeMod.REACH_DISTANCE.get(),
-                        new AttributeModifier(
-                                AttributeHelper.BASE_ENTITY_REACH,
-                                () -> "attributeslib:fake_base_range",
-                                0,
-                                Operation.ADDITION));
-            }
-        }
-        if (e.getSlotType() == EquipmentSlot.CHEST
-                && e.getItemStack().getItem() instanceof ElytraItem
-                && !e.getModifiers().containsKey(ALObjects.Attributes.ELYTRA_FLIGHT.get())) {
-            e.addModifier(
-                    ALObjects.Attributes.ELYTRA_FLIGHT.get(),
-                    new AttributeModifier(
-                            AttributeHelper.ELYTRA_FLIGHT_UUID,
-                            () -> "attributeslib:elytra_item_flight",
-                            1,
-                            Operation.ADDITION));
         }
     }
 
     @SubscribeEvent
     public void trackCooldown(AttackEntityEvent e) {
-        Player p = e.getPlayer();
-        AttributesLib.localAtkStrength = p.getAttackStrengthScale(0.5F);
+        PlayerEntity p = e.getPlayer();
+
+        AttributesLib.localAtkStrength = p.getCooledAttackStrength(0.5F);
     }
 
     @SubscribeEvent
@@ -603,38 +569,40 @@ public class AttributeEvents {
         // e.getAttributeInstance().getAttribute().getDescriptionId(), e.getOldValue(),
         // e.getNewValue());
         if (e.getAttributeInstance().getAttribute() == ALObjects.Attributes.CREATIVE_FLIGHT.get()
-                && e.getEntity() instanceof ServerPlayer player) {
+                && e.getEntity() instanceof ServerPlayerEntity) {
+            ServerPlayerEntity player = (ServerPlayerEntity) e.getEntity();
 
             boolean changed = false;
 
             if (((IFlying) player).getAndDestroyFlyingCache()) {
-                player.getAbilities().flying = true;
+                player.abilities.isFlying = true;
                 changed = true;
             }
 
             if (e.getNewValue() > 0) {
-                player.getAbilities().mayfly = true;
+                player.abilities.allowFlying = true;
                 changed = true;
             } else if (e.getOldValue() > 0 && e.getNewValue() <= 0) {
-                player.getAbilities().mayfly = false;
-                player.getAbilities().flying = false;
+                player.abilities.allowFlying = false;
+                player.abilities.isFlying = false;
                 changed = true;
             }
 
-            if (changed) player.onUpdateAbilities();
+            if (changed) player.sendPlayerAbilities();
         }
     }
 
-    public static void applyCreativeFlightModifier(Player player, GameType newType) {
-        AttributeInstance inst = player.getAttribute(ALObjects.Attributes.CREATIVE_FLIGHT.get());
+    public static void applyCreativeFlightModifier(PlayerEntity player, GameType newType) {
+        ModifiableAttributeInstance inst =
+                player.getAttribute(ALObjects.Attributes.CREATIVE_FLIGHT.get());
         if (newType == GameType.CREATIVE || newType == GameType.SPECTATOR) {
             if (inst.getModifier(AttributeHelper.CREATIVE_FLIGHT_UUID) == null) {
-                inst.addTransientModifier(
+                inst.applyPersistentModifier(
                         new AttributeModifier(
                                 AttributeHelper.CREATIVE_FLIGHT_UUID,
                                 () -> "attributeslib:creative_flight",
                                 1,
-                                Operation.ADDITION));
+                                AttributeModifier.Operation.ADDITION));
             }
         } else {
             inst.removeModifier(AttributeHelper.CREATIVE_FLIGHT_UUID);
@@ -664,7 +632,7 @@ public class AttributeEvents {
      */
     public static int computeDodgeSeed(LivingEntity target) {
         int delta = 0x9E3779B9;
-        int base = target.tickCount + target.getUUID().hashCode();
+        int base = target.ticksExisted + target.getUniqueID().hashCode();
         return base + delta + (base << 6) + (base >> 2);
     }
 

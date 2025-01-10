@@ -166,31 +166,30 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.function.BiConsumer;
-import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.entity.EquipmentSlot;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.ai.attributes.AttributeModifier;
+import net.minecraft.inventory.EquipmentSlotType;
+import net.minecraft.item.ItemStack;
+import net.minecraft.potion.EffectInstance;
 
 /**
  * A Modifier Source Type is a the registration component of a ModifierSource.
  *
  * @param <T>
  */
-public abstract class ModifierSourceType<T> {
+public abstract class ModifierSourceType {
 
-    private static final List<ModifierSourceType<?>> SOURCE_TYPES = new ArrayList<>();
+    private static final List<ModifierSourceType> SOURCE_TYPES = new ArrayList<>();
 
-    public static final ModifierSourceType<ItemStack> EQUIPMENT =
+    public static final ModifierSourceType EQUIPMENT =
             register(
-                    new ModifierSourceType<>() {
-
+                    new ModifierSourceType() {
                         @Override
                         public void extract(
                                 LivingEntity entity,
                                 BiConsumer<AttributeModifier, ModifierSource<?>> map) {
-                            for (EquipmentSlot slot : EquipmentSlot.values()) {
-                                ItemStack item = entity.getItemBySlot(slot);
+                            for (EquipmentSlotType slot : EquipmentSlotType.values()) {
+                                ItemStack item = entity.getItemStackFromSlot(slot);
                                 item.getAttributeModifiers(slot)
                                         .values()
                                         .forEach(
@@ -206,18 +205,17 @@ public abstract class ModifierSourceType<T> {
                         }
                     });
 
-    public static final ModifierSourceType<MobEffectInstance> MOB_EFFECT =
+    public static final ModifierSourceType MOB_EFFECT =
             register(
-                    new ModifierSourceType<>() {
-
+                    new ModifierSourceType() {
                         @Override
                         public void extract(
                                 LivingEntity entity,
                                 BiConsumer<AttributeModifier, ModifierSource<?>> map) {
-                            for (MobEffectInstance effectInst : entity.getActiveEffects()) {
+                            for (EffectInstance effectInst : entity.getActivePotionEffects()) {
                                 effectInst
-                                        .getEffect()
-                                        .getAttributeModifiers()
+                                        .getPotion()
+                                        .getAttributeModifierMap()
                                         .values()
                                         .forEach(
                                                 modif -> {
@@ -234,11 +232,11 @@ public abstract class ModifierSourceType<T> {
                         }
                     });
 
-    public static Collection<ModifierSourceType<?>> getTypes() {
+    public static Collection<ModifierSourceType> getTypes() {
         return Collections.unmodifiableCollection(SOURCE_TYPES);
     }
 
-    public static <T extends ModifierSourceType<?>> T register(T type) {
+    public static <T extends ModifierSourceType> T register(T type) {
         SOURCE_TYPES.add(type);
         return type;
     }
@@ -249,13 +247,13 @@ public abstract class ModifierSourceType<T> {
         Comparator<AttributeModifier> comp =
                 Comparators.chained(
                         Comparator.comparingInt(
-                                a -> sources.get(a.getId()).getType().getPriority()),
-                        Comparator.comparing(a -> sources.get(a.getId())),
+                                a -> sources.get(a.getID()).getType().getPriority()),
+                        Comparator.comparing(a -> sources.get(a.getID())),
                         AttributeHelper.modifierComparator());
 
         return (a1, a2) -> {
-            var src1 = sources.get(a1.getId());
-            var src2 = sources.get(a2.getId());
+            ModifierSource<?> src1 = sources.get(a1.getID());
+            ModifierSource<?> src2 = sources.get(a2.getID());
 
             if (src1 != null && src2 != null) return comp.compare(a1, a2);
 

@@ -156,13 +156,12 @@ package dev.shadowsoffire.attributeslib.api.client;
 
 import java.util.Set;
 import java.util.UUID;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.client.util.ITooltipFlag;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.player.PlayerEvent;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * This event is used to collect UUIDs of attribute modifiers that will not be displayed in item
@@ -178,10 +177,10 @@ public class GatherSkippedAttributeTooltipsEvent extends PlayerEvent {
 
     protected final ItemStack stack;
     protected final Set<UUID> skips;
-    protected final TooltipFlag flag;
+    protected final ITooltipFlag flag;
 
     public GatherSkippedAttributeTooltipsEvent(
-            ItemStack stack, @Nullable Player player, Set<UUID> skips, TooltipFlag flag) {
+            ItemStack stack, PlayerEntity player, Set<UUID> skips, ITooltipFlag flag) {
         super(player);
         this.stack = stack;
         this.skips = skips;
@@ -192,7 +191,7 @@ public class GatherSkippedAttributeTooltipsEvent extends PlayerEvent {
      * Use to determine if the advanced information on item tooltips is being shown, toggled by
      * F3+H.
      */
-    public TooltipFlag getFlags() {
+    public ITooltipFlag getFlags() {
         return this.flag;
     }
 
@@ -214,7 +213,7 @@ public class GatherSkippedAttributeTooltipsEvent extends PlayerEvent {
      * tooltips.
      */
     @Override
-    @Nullable public Player getEntity() {
+    public PlayerEntity getEntity() {
         return super.getPlayer();
     }
 }

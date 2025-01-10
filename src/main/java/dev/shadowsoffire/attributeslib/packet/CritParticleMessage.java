@@ -158,8 +158,8 @@ import dev.shadowsoffire.attributeslib.client.AttributesLibClient;
 import dev.shadowsoffire.placebo.network.MessageHelper;
 import dev.shadowsoffire.placebo.network.MessageProvider;
 import java.util.function.Supplier;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkEvent.Context;
+import net.minecraft.network.PacketBuffer;
+import net.minecraftforge.fml.network.NetworkEvent;
 
 public class CritParticleMessage {
 
@@ -177,17 +177,17 @@ public class CritParticleMessage {
         }
 
         @Override
-        public void write(CritParticleMessage msg, FriendlyByteBuf buf) {
+        public void write(CritParticleMessage msg, PacketBuffer buf) {
             buf.writeInt(msg.entityId);
         }
 
         @Override
-        public CritParticleMessage read(FriendlyByteBuf buf) {
+        public CritParticleMessage read(PacketBuffer buf) {
             return new CritParticleMessage(buf.readInt());
         }
 
         @Override
-        public void handle(CritParticleMessage msg, Supplier<Context> ctx) {
+        public void handle(CritParticleMessage msg, Supplier<NetworkEvent.Context> ctx) {
             MessageHelper.handlePacket(
                     () -> {
                         AttributesLibClient.apothCrit(msg.entityId);

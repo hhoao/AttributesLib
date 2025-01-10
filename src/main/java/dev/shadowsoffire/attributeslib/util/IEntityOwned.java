@@ -154,7 +154,7 @@
 
 package dev.shadowsoffire.attributeslib.util;
 
-import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.entity.LivingEntity;
 
 public interface IEntityOwned {
 

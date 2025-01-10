@@ -155,13 +155,13 @@
 package dev.shadowsoffire.attributeslib.mobfx;
 
 import dev.shadowsoffire.attributeslib.mixin.LivingEntityMixin;
-import net.minecraft.world.effect.MobEffect;
-import net.minecraft.world.effect.MobEffectCategory;
+import net.minecraft.potion.Effect;
+import net.minecraft.potion.EffectType;
 
 /** Applied via {@link LivingEntityMixin} */
-public class SunderingEffect extends MobEffect {
+public class SunderingEffect extends Effect {
 
     public SunderingEffect() {
-        super(MobEffectCategory.HARMFUL, 0x989898);
+        super(EffectType.HARMFUL, 0x989898);
     }
 }

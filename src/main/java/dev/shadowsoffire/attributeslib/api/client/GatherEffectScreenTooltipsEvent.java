@@ -156,9 +156,9 @@ package dev.shadowsoffire.attributeslib.api.client;
 
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.client.gui.screens.inventory.EffectRenderingInventoryScreen;
-import net.minecraft.network.chat.Component;
-import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.client.gui.DisplayEffectsScreen;
+import net.minecraft.potion.EffectInstance;
+import net.minecraft.util.text.IFormattableTextComponent;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.eventbus.api.Event;
@@ -173,37 +173,31 @@ import net.minecraftforge.eventbus.api.Event;
  */
 public class GatherEffectScreenTooltipsEvent extends Event {
 
-    protected final EffectRenderingInventoryScreen<?> screen;
-    protected final MobEffectInstance effectInst;
-    protected final List<Component> tooltip;
+    protected final DisplayEffectsScreen<?> screen;
+    protected final EffectInstance effectInst;
+    protected final List<IFormattableTextComponent> tooltip;
 
     public GatherEffectScreenTooltipsEvent(
-            EffectRenderingInventoryScreen<?> screen,
-            MobEffectInstance effectInst,
-            List<Component> tooltip) {
+            DisplayEffectsScreen<?> screen,
+            EffectInstance effectInst,
+            List<IFormattableTextComponent> tooltip) {
         this.screen = screen;
         this.effectInst = effectInst;
         this.tooltip = new ArrayList<>(tooltip);
     }
 
-    /**
-     * @return The screen which will be rendering the tooltip lines.
-     */
-    public EffectRenderingInventoryScreen<?> getScreen() {
+    /** @return The screen which will be rendering the tooltip lines. */
+    public DisplayEffectsScreen<?> getScreen() {
         return this.screen;
     }
 
-    /**
-     * @return The effect whose tooltip is being drawn.
-     */
-    public MobEffectInstance getEffectInstance() {
+    /** @return The effect whose tooltip is being drawn. */
+    public EffectInstance getEffectInstance() {
         return this.effectInst;
     }
 
-    /**
-     * @return A mutable list of tooltip lines.
-     */
-    public List<Component> getTooltip() {
+    /** @return A mutable list of tooltip lines. */
+    public List<IFormattableTextComponent> getTooltip() {
         return this.tooltip;
     }
 }

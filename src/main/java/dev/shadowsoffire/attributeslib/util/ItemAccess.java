@@ -155,7 +155,7 @@
 package dev.shadowsoffire.attributeslib.util;
 
 import java.util.UUID;
-import net.minecraft.world.item.Item;
+import net.minecraft.item.Item;
 
 public final class ItemAccess extends Item {
 
@@ -164,10 +164,10 @@ public final class ItemAccess extends Item {
     }
 
     public static UUID getBaseAD() {
-        return Item.BASE_ATTACK_DAMAGE_UUID;
+        return Item.ATTACK_DAMAGE_MODIFIER;
     }
 
     public static UUID getBaseAS() {
-        return Item.BASE_ATTACK_SPEED_UUID;
+        return Item.ATTACK_SPEED_MODIFIER;
     }
 }

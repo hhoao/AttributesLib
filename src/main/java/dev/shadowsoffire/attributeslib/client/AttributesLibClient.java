@@ -173,43 +173,42 @@ import java.util.HashSet;
 import java.util.IdentityHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.inventory.InventoryScreen;
-import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.screen.inventory.InventoryScreen;
 import net.minecraft.client.particle.CritParticle;
-import net.minecraft.client.resources.language.I18n;
-import net.minecraft.core.Registry;
-import net.minecraft.core.particles.SimpleParticleType;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.network.chat.TextColor;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
-import net.minecraft.world.effect.MobEffect;
-import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EquipmentSlot;
-import net.minecraft.world.entity.ai.attributes.Attribute;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.ItemStack.TooltipPart;
-import net.minecraft.world.item.PotionItem;
-import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.alchemy.PotionUtils;
+import net.minecraft.client.resources.I18n;
+import net.minecraft.client.util.ITooltipFlag;
+import net.minecraft.client.world.ClientWorld;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.ai.attributes.Attribute;
+import net.minecraft.entity.ai.attributes.AttributeModifier;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.inventory.EquipmentSlotType;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.PotionItem;
+import net.minecraft.particles.BasicParticleType;
+import net.minecraft.potion.Effect;
+import net.minecraft.potion.EffectInstance;
+import net.minecraft.potion.PotionUtils;
+import net.minecraft.util.registry.Registry;
+import net.minecraft.util.text.Color;
+import net.minecraft.util.text.IFormattableTextComponent;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TextFormatting;
+import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
+import net.minecraftforge.client.event.GuiScreenEvent;
 import net.minecraftforge.client.event.ParticleFactoryRegisterEvent;
-import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
-import net.minecraftforge.client.event.ScreenEvent;
 import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.event.AddReloadListenerEvent;
 import net.minecraftforge.event.entity.player.ItemTooltipEvent;
 import net.minecraftforge.eventbus.api.EventPriority;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
@@ -223,21 +222,21 @@ public class AttributesLibClient {
         // For this one we have to ensure that the state is marked to be restored before
         // MultiPlayerGameMode#adjustPlayer is called in
         // ClientPacketListener#handleRespawn.
-        if (e.getOldPlayer().getAbilities().flying) {
+        if (e.getOldPlayer().abilities.isFlying) {
             ((IFlying) e.getNewPlayer()).markFlying();
         }
     }
 
     @SubscribeEvent
-    public static void clientReload(RegisterClientReloadListenersEvent e) {
-        e.registerReloadListener(ALConfig.makeReloader());
+    public void clientReload(AddReloadListenerEvent e) {
+        e.addListener(ALConfig.makeReloader());
     }
 
     @SubscribeEvent
     public static void particleFactories(ParticleFactoryRegisterEvent e) {
         Minecraft.getInstance()
-                .particleEngine
-                .register(
+                .particles
+                .registerFactory(
                         ALObjects.Particles.APOTH_CRIT.get(),
                         spriteSet ->
                                 (particleOptions, clientLevel, x, y, z, dx, dy, dz) -> {
@@ -251,7 +250,9 @@ public class AttributesLibClient {
                                                     dx,
                                                     dy,
                                                     dz);
-                                    apothCritParticle.pickSprite(spriteSet);
+                                    apothCritParticle.selectSpriteRandomly(spriteSet);
+                                    //
+                                    // apothCritParticle.pickSprite(spriteSet);
                                     return apothCritParticle;
                                 });
     }
@@ -259,10 +260,10 @@ public class AttributesLibClient {
     @SubscribeEvent(priority = EventPriority.HIGHEST)
     public void tooltips(ItemTooltipEvent e) {
         ItemStack stack = e.getItemStack();
-        List<Component> list = e.getToolTip();
+        List<ITextComponent> list = e.getToolTip();
         int markIdx1 = -1, markIdx2 = -1;
         for (int i = 0; i < list.size(); i++) {
-            String contents = list.get(i).getContents();
+            String contents = list.get(i).getString();
             if ("APOTH_REMOVE_MARKER".equals(contents)) {
                 markIdx1 = i;
             }
@@ -272,13 +273,13 @@ public class AttributesLibClient {
             }
         }
         if (markIdx1 == -1 || markIdx2 == -1) return;
-        var it = list.listIterator(markIdx1);
+        ListIterator<ITextComponent> it = list.listIterator(markIdx1);
         for (int i = markIdx1; i < markIdx2 + 1; i++) {
             it.next();
             it.remove();
         }
         int flags = getHideFlags(stack);
-        if (shouldShowInTooltip(flags, TooltipPart.MODIFIERS)) {
+        if (shouldShowInTooltip(flags, ItemStack.TooltipDisplayFlags.MODIFIERS)) {
             applyModifierTooltips(e.getPlayer(), stack, it::add, e.getFlags());
         }
         MinecraftForge.EVENT_BUS.post(
@@ -286,12 +287,13 @@ public class AttributesLibClient {
     }
 
     @SubscribeEvent(priority = EventPriority.HIGH)
-    public void addAttribComponent(ScreenEvent.InitScreenEvent.Post e) {
-        if (ALConfig.enableAttributesGui && e.getScreen() instanceof InventoryScreen scn) {
+    public void addAttribComponent(GuiScreenEvent.InitGuiEvent.Post e) {
+        if (ALConfig.enableAttributesGui && e.getGui() instanceof InventoryScreen) {
+            InventoryScreen scn = (InventoryScreen) e.getGui();
             AttributesGui atrComp = new AttributesGui(scn);
-            e.addListener(atrComp);
-            e.addListener(atrComp.toggleBtn);
-            e.addListener(atrComp.hideUnchangedBtn);
+            e.addWidget(atrComp);
+            e.addWidget(atrComp.toggleBtn);
+            e.addWidget(atrComp.hideUnchangedBtn);
             if (AttributesGui.wasOpen || AttributesGui.swappedFromCurios)
                 atrComp.toggleVisibility();
             AttributesGui.swappedFromCurios = false;
@@ -301,42 +303,42 @@ public class AttributesLibClient {
     @SuppressWarnings("deprecation")
     @SubscribeEvent(priority = EventPriority.HIGH)
     public void effectGuiTooltips(GatherEffectScreenTooltipsEvent e) {
-        List<Component> tooltips = e.getTooltip();
-        MobEffectInstance effectInst = e.getEffectInstance();
-        MobEffect effect = effectInst.getEffect();
+        List<IFormattableTextComponent> tooltips = e.getTooltip();
+        EffectInstance effectInst = e.getEffectInstance();
+        Effect effect = effectInst.getPotion();
 
-        MutableComponent name = (MutableComponent) tooltips.get(0);
-        Component duration = tooltips.remove(1);
-        duration = new TranslatableComponent("(%s)", duration).withStyle(ChatFormatting.WHITE);
+        IFormattableTextComponent name = tooltips.get(0);
+        IFormattableTextComponent duration = tooltips.remove(1);
+        duration = new TranslationTextComponent("(%s)", duration).mergeStyle(TextFormatting.WHITE);
 
-        name.append(" ").append(duration);
+        name.append(ITextComponent.getTextComponentOrEmpty(" ")).append(duration);
 
         if (AttributesLib.getTooltipFlag().isAdvanced()) {
-            name.append(" ")
+            name.append(ITextComponent.getTextComponentOrEmpty(" "))
                     .append(
-                            new TranslatableComponent("[%s]", Registry.MOB_EFFECT.getKey(effect))
-                                    .withStyle(ChatFormatting.GRAY));
+                            new TranslationTextComponent("[%s]", Registry.EFFECTS.getKey(effect))
+                                    .mergeStyle(TextFormatting.GRAY));
         }
 
-        String key = effect.getDescriptionId() + ".desc";
-        if (I18n.exists(key)) {
-            tooltips.add(new TranslatableComponent(key).withStyle(ChatFormatting.DARK_GRAY));
+        String key = effect.getName() + ".desc";
+        if (I18n.hasKey(key)) {
+            tooltips.add(new TranslationTextComponent(key).mergeStyle(TextFormatting.DARK_GRAY));
         } else if (AttributesLib.getTooltipFlag().isAdvanced()
-                && effect.getAttributeModifiers().isEmpty()) {
+                && effect.getAttributeModifierMap().isEmpty()) {
             tooltips.add(
-                    new TranslatableComponent(key)
-                            .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
+                    new TranslationTextComponent(key)
+                            .mergeStyle(TextFormatting.DARK_GRAY, TextFormatting.ITALIC));
         }
 
         List<Pair<Attribute, AttributeModifier>> list = Lists.newArrayList();
-        Map<Attribute, AttributeModifier> map = effect.getAttributeModifiers();
+        Map<Attribute, AttributeModifier> map = effect.getAttributeModifierMap();
         if (!map.isEmpty()) {
             for (Map.Entry<Attribute, AttributeModifier> entry : map.entrySet()) {
                 AttributeModifier attributemodifier = entry.getValue();
                 AttributeModifier attributemodifier1 =
                         new AttributeModifier(
                                 attributemodifier.getName(),
-                                effect.getAttributeModifierValue(
+                                effect.getAttributeModifierAmount(
                                         effectInst.getAmplifier(), attributemodifier),
                                 attributemodifier.getOperation());
                 list.add(new Pair<>(entry.getKey(), attributemodifier1));
@@ -357,29 +359,31 @@ public class AttributesLibClient {
         if (!ALConfig.enablePotionTooltips) return;
 
         ItemStack stack = e.getItemStack();
-        List<Component> tooltips = e.getToolTip();
+        List<ITextComponent> tooltips = e.getToolTip();
 
         if (stack.getItem() instanceof PotionItem) {
-            List<MobEffectInstance> effects = PotionUtils.getMobEffects(stack);
+            List<EffectInstance> effects = PotionUtils.getEffectsFromStack(stack);
             if (effects.size() == 1 && tooltips.size() >= 2) {
-                MobEffect effect = effects.get(0).getEffect();
-                String key = effect.getDescriptionId() + ".desc";
-                if (I18n.exists(key)) {
-                    tooltips.add(
-                            2, new TranslatableComponent(key).withStyle(ChatFormatting.DARK_GRAY));
-                } else if (e.getFlags().isAdvanced() && effect.getAttributeModifiers().isEmpty()) {
+                Effect effect = effects.get(0).getPotion();
+                String key = effect.getName() + ".desc";
+                if (I18n.hasKey(key)) {
                     tooltips.add(
                             2,
-                            new TranslatableComponent(key)
-                                    .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
+                            new TranslationTextComponent(key).mergeStyle(TextFormatting.DARK_GRAY));
+                } else if (e.getFlags().isAdvanced()
+                        && effect.getAttributeModifierMap().isEmpty()) {
+                    tooltips.add(
+                            2,
+                            new TranslationTextComponent(key)
+                                    .mergeStyle(TextFormatting.DARK_GRAY, TextFormatting.ITALIC));
                 }
             }
         }
     }
 
     public static Multimap<Attribute, AttributeModifier> getSortedModifiers(
-            ItemStack stack, EquipmentSlot slot) {
-        var unsorted = stack.getAttributeModifiers(slot);
+            ItemStack stack, EquipmentSlotType slot) {
+        Multimap<Attribute, AttributeModifier> unsorted = stack.getAttributeModifiers(slot);
         Multimap<Attribute, AttributeModifier> map = AttributeHelper.sortedMap();
         for (Map.Entry<Attribute, AttributeModifier> ent : unsorted.entries()) {
             if (ent.getKey() != null && ent.getValue() != null)
@@ -395,40 +399,41 @@ public class AttributesLibClient {
     }
 
     public static void apothCrit(int entityId) {
-        Entity entity = Minecraft.getInstance().level.getEntity(entityId);
+        Entity entity = Minecraft.getInstance().world.getEntityByID(entityId);
 
         if (entity != null) {
             Minecraft.getInstance()
-                    .particleEngine
-                    .createTrackingEmitter(entity, ALObjects.Particles.APOTH_CRIT.get());
+                    .particles
+                    .addParticleEmitter(entity, ALObjects.Particles.APOTH_CRIT.get());
         }
     }
 
-    private static boolean shouldShowInTooltip(int pHideFlags, TooltipPart pPart) {
-        return (pHideFlags & pPart.getMask()) == 0;
+    private static boolean shouldShowInTooltip(
+            int pHideFlags, ItemStack.TooltipDisplayFlags pPart) {
+        return (pHideFlags & pPart.func_242397_a()) == 0;
     }
 
     private static int getHideFlags(ItemStack stack) {
         return stack.hasTag() && stack.getTag().contains("HideFlags", 99)
                 ? stack.getTag().getInt("HideFlags")
-                : stack.getItem().getDefaultTooltipHideFlags(stack);
+                : 0;
     }
 
     private static void applyModifierTooltips(
-            @Nullable Player player,
+            @Nullable PlayerEntity player,
             ItemStack stack,
-            Consumer<Component> tooltip,
-            TooltipFlag flag) {
+            Consumer<IFormattableTextComponent> tooltip,
+            ITooltipFlag flag) {
         Multimap<Attribute, AttributeModifier> mainhand =
-                getSortedModifiers(stack, EquipmentSlot.MAINHAND);
+                getSortedModifiers(stack, EquipmentSlotType.MAINHAND);
         Multimap<Attribute, AttributeModifier> offhand =
-                getSortedModifiers(stack, EquipmentSlot.OFFHAND);
+                getSortedModifiers(stack, EquipmentSlotType.OFFHAND);
         Multimap<Attribute, AttributeModifier> dualHand = AttributeHelper.sortedMap();
         for (Attribute atr : mainhand.keys()) {
             Collection<AttributeModifier> modifMh = mainhand.get(atr);
             Collection<AttributeModifier> modifOh = offhand.get(atr);
             modifMh.stream()
-                    .filter(a1 -> modifOh.stream().anyMatch(a2 -> a1.getId().equals(a2.getId())))
+                    .filter(a1 -> modifOh.stream().anyMatch(a2 -> a1.getID().equals(a2.getID())))
                     .forEach(modif -> dualHand.put(atr, modif));
         }
 
@@ -436,7 +441,7 @@ public class AttributesLibClient {
                 .forEach(
                         m -> {
                             mainhand.values().remove(m);
-                            offhand.values().removeIf(m1 -> m1.getId().equals(m.getId()));
+                            offhand.values().removeIf(m1 -> m1.getID().equals(m.getID()));
                         });
 
         Set<UUID> skips = new HashSet<>();
@@ -445,44 +450,60 @@ public class AttributesLibClient {
 
         applyTextFor(player, stack, tooltip, dualHand, "both_hands", skips, flag);
         applyTextFor(
-                player, stack, tooltip, mainhand, EquipmentSlot.MAINHAND.getName(), skips, flag);
-        applyTextFor(player, stack, tooltip, offhand, EquipmentSlot.OFFHAND.getName(), skips, flag);
+                player,
+                stack,
+                tooltip,
+                mainhand,
+                EquipmentSlotType.MAINHAND.getName(),
+                skips,
+                flag);
+        applyTextFor(
+                player, stack, tooltip, offhand, EquipmentSlotType.OFFHAND.getName(), skips, flag);
 
-        for (EquipmentSlot slot : EquipmentSlot.values()) {
+        for (EquipmentSlotType slot : EquipmentSlotType.values()) {
             if (slot.ordinal() < 2) continue;
             Multimap<Attribute, AttributeModifier> modifiers = getSortedModifiers(stack, slot);
             applyTextFor(player, stack, tooltip, modifiers, slot.getName(), skips, flag);
         }
     }
 
-    private static MutableComponent padded(String padding, Component comp) {
-        return new TextComponent(padding).append(comp);
+    private static ITextComponent padded(String padding, ITextComponent comp) {
+        return new StringTextComponent(padding).append(comp);
     }
 
-    private static MutableComponent list() {
+    private static IFormattableTextComponent list() {
         return AttributeHelper.list();
     }
 
-    private static record BaseModifier(AttributeModifier base, List<AttributeModifier> children) {}
+    private static class BaseModifier {
+
+        public final AttributeModifier base;
+        public final List<AttributeModifier> children;
+
+        public BaseModifier(AttributeModifier base, List<AttributeModifier> children) {
+            this.base = base;
+            this.children = children;
+        }
+    }
 
     private static final UUID FAKE_MERGED_UUID =
             UUID.fromString("a6b0ac71-e435-416e-a991-7623eaa129a4");
 
     private static void applyTextFor(
-            @Nullable Player player,
+            @Nullable PlayerEntity player,
             ItemStack stack,
-            Consumer<Component> tooltip,
+            Consumer<IFormattableTextComponent> tooltip,
             Multimap<Attribute, AttributeModifier> modifierMap,
             String group,
             Set<UUID> skips,
-            TooltipFlag flag) {
+            ITooltipFlag flag) {
         if (!modifierMap.isEmpty()) {
-            modifierMap.values().removeIf(m -> skips.contains(m.getId()));
+            modifierMap.values().removeIf(m -> skips.contains(m.getID()));
 
-            tooltip.accept(new TextComponent(""));
+            tooltip.accept(new StringTextComponent(""));
             tooltip.accept(
-                    new TranslatableComponent("item.modifiers." + group)
-                            .withStyle(ChatFormatting.GRAY));
+                    new TranslationTextComponent("item.modifiers." + group)
+                            .mergeStyle(TextFormatting.GRAY));
 
             if (modifierMap.isEmpty()) return;
 
@@ -490,7 +511,7 @@ public class AttributesLibClient {
 
             modifierMap.forEach(
                     (attr, modif) -> {
-                        if (modif.getId().equals(((IFormattableAttribute) attr).getBaseUUID())) {
+                        if (modif.getID().equals(((IFormattableAttribute) attr).getBaseUUID())) {
                             baseModifs.put(attr, new BaseModifier(modif, new ArrayList<>()));
                         }
                     });
@@ -506,35 +527,37 @@ public class AttributesLibClient {
             for (Map.Entry<Attribute, BaseModifier> entry : baseModifs.entrySet()) {
                 Attribute attr = entry.getKey();
                 BaseModifier baseModif = entry.getValue();
-                double entityBase = player == null ? 0 : player.getAttributeBaseValue(attr);
+                double entityBase = player == null ? 0 : player.getBaseAttributeValue(attr);
                 double base = baseModif.base.getAmount() + entityBase;
                 final double rawBase = base;
                 double amt = base;
                 double baseBonus = ((IFormattableAttribute) attr).getBonusBaseValue(stack);
                 for (AttributeModifier modif : baseModif.children) {
-                    if (modif.getOperation() == Operation.ADDITION)
+                    if (modif.getOperation() == AttributeModifier.Operation.ADDITION)
                         base = amt = amt + modif.getAmount();
-                    else if (modif.getOperation() == Operation.MULTIPLY_BASE)
+                    else if (modif.getOperation() == AttributeModifier.Operation.MULTIPLY_BASE)
                         amt += modif.getAmount() * base;
                     else amt *= 1 + modif.getAmount();
                 }
                 amt += baseBonus;
                 boolean isMerged = !baseModif.children.isEmpty() || baseBonus != 0;
-                MutableComponent text =
+                ITextComponent text =
                         IFormattableAttribute.toBaseComponent(
                                 attr, amt, entityBase, isMerged, flag);
                 tooltip.accept(
                         padded(" ", text)
-                                .withStyle(
+                                .copyRaw()
+                                .mergeStyle(
                                         isMerged
-                                                ? ChatFormatting.GOLD
-                                                : ChatFormatting.DARK_GREEN));
+                                                ? TextFormatting.GOLD
+                                                : TextFormatting.DARK_GREEN));
                 if (Screen.hasShiftDown() && isMerged) {
                     // Display the raw base value, and then all children modifiers.
                     text =
                             IFormattableAttribute.toBaseComponent(
                                     attr, rawBase, entityBase, false, flag);
-                    tooltip.accept(list().append(text.withStyle(ChatFormatting.DARK_GREEN)));
+                    tooltip.accept(
+                            list().append(text.copyRaw().mergeStyle(TextFormatting.DARK_GREEN)));
                     for (AttributeModifier modifier : baseModif.children) {
                         tooltip.accept(
                                 list().append(
@@ -555,7 +578,8 @@ public class AttributesLibClient {
                 if (modifs.size() > 1) {
                     double[] sums = new double[3];
                     boolean[] merged = new boolean[3];
-                    Map<Operation, List<AttributeModifier>> shiftExpands = new HashMap<>();
+                    Map<AttributeModifier.Operation, List<AttributeModifier>> shiftExpands =
+                            new HashMap<>();
                     for (AttributeModifier modifier : modifs) {
                         if (modifier.getAmount() == 0) continue;
                         if (sums[modifier.getOperation().ordinal()] != 0)
@@ -565,27 +589,26 @@ public class AttributesLibClient {
                                 .computeIfAbsent(modifier.getOperation(), k -> new LinkedList<>())
                                 .add(modifier);
                     }
-                    for (Operation op : Operation.values()) {
+                    for (AttributeModifier.Operation op : AttributeModifier.Operation.values()) {
                         int i = op.ordinal();
                         if (sums[i] == 0) continue;
                         if (merged[i]) {
-                            TextColor color =
-                                    sums[i] < 0
-                                            ? TextColor.fromRgb(0xF93131)
-                                            : TextColor.fromRgb(0x7A7AF9);
+                            Color color =
+                                    sums[i] < 0 ? Color.fromInt(0xF93131) : Color.fromInt(0x7A7AF9);
                             if (sums[i] < 0) sums[i] *= -1;
-                            var fakeModif =
+                            AttributeModifier fakeModif =
                                     new AttributeModifier(
                                             FAKE_MERGED_UUID,
                                             () -> AttributesLib.MODID + ":merged",
                                             sums[i],
                                             op);
-                            MutableComponent comp =
+                            ITextComponent comp =
                                     IFormattableAttribute.toComponent(attr, fakeModif, flag);
-                            tooltip.accept(comp.withStyle(comp.getStyle().withColor(color)));
+                            tooltip.accept(
+                                    comp.copyRaw().mergeStyle(comp.getStyle().setColor(color)));
                             if (merged[i] && Screen.hasShiftDown()) {
                                 shiftExpands
-                                        .get(Operation.fromValue(i))
+                                        .get(AttributeModifier.Operation.byId(i))
                                         .forEach(
                                                 modif ->
                                                         tooltip.accept(
@@ -597,7 +620,7 @@ public class AttributesLibClient {
                                                                                                 flag))));
                             }
                         } else {
-                            var fakeModif =
+                            AttributeModifier fakeModif =
                                     new AttributeModifier(
                                             FAKE_MERGED_UUID,
                                             () -> AttributesLib.MODID + ":merged",
@@ -619,10 +642,9 @@ public class AttributesLibClient {
     }
 
     public static class ApothCritParticle extends CritParticle {
-
         public ApothCritParticle(
-                SimpleParticleType type,
-                ClientLevel pLevel,
+                BasicParticleType type,
+                ClientWorld pLevel,
                 double pX,
                 double pY,
                 double pZ,
@@ -630,9 +652,10 @@ public class AttributesLibClient {
                 double pYSpeed,
                 double pZSpeed) {
             super(pLevel, pX, pY, pZ, pXSpeed, pYSpeed, pZSpeed);
-            this.bCol = 1F;
-            this.rCol = 0.3F;
-            this.gCol = 0.8F;
+            setColor(0.3F, 0.8F, 1F);
+            //            this.bCol = 1F;
+            //            this.rCol = 0.3F;
+            //            this.gCol = 0.8F;
         }
     }
 }

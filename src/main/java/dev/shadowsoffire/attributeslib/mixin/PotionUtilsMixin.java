@@ -154,21 +154,8 @@
 
 package dev.shadowsoffire.attributeslib.mixin;
 
-import com.mojang.datafixers.util.Pair;
-import dev.shadowsoffire.attributeslib.AttributesLib;
-import dev.shadowsoffire.attributeslib.api.IFormattableAttribute;
-import java.util.List;
-import net.minecraft.ChatFormatting;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
-import net.minecraft.world.entity.ai.attributes.Attribute;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.alchemy.PotionUtils;
+import net.minecraft.potion.PotionUtils;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Redirect;
 
 @Mixin(PotionUtils.class)
 public class PotionUtilsMixin {
@@ -185,27 +172,28 @@ public class PotionUtilsMixin {
      * @return True, unconditionally, so that the vanilla tooltip logic is ignored.
      * @see PotionUtils#addPotionTooltip(ItemStack, List, float)
      */
-    @Redirect(
-            method = "addPotionTooltip(Lnet/minecraft/world/item/ItemStack;Ljava/util/List;F)V",
-            at = @At(value = "INVOKE", target = "Ljava/util/List;isEmpty()Z", ordinal = 1),
-            require = 1)
-    private static boolean attributeslib_potionTooltips(
-            List<Pair<Attribute, AttributeModifier>> list,
-            ItemStack itemStack,
-            List<Component> tooltips,
-            float durationFactor) {
-        if (!list.isEmpty()) {
-            tooltips.add(new TextComponent(""));
-            tooltips.add(
-                    new TranslatableComponent("potion.whenDrank")
-                            .withStyle(ChatFormatting.DARK_PURPLE));
-
-            for (Pair<Attribute, AttributeModifier> pair : list) {
-                tooltips.add(
-                        IFormattableAttribute.toComponent(
-                                pair.getFirst(), pair.getSecond(), AttributesLib.getTooltipFlag()));
-            }
-        }
-        return true;
-    }
+    //    @Redirect(
+    //            method = "addPotionTooltip(Lnet/minecraft/item/ItemStack;Ljava/util/List;F)V",
+    //            at = @At(value = "INVOKE", target = "Ljava/util/List;isEmpty()Z", ordinal = 1),
+    //            require = 1)
+    //    private static boolean attributeslib_potionTooltips(
+    //            List<Pair<Attribute, AttributeModifier>> list,
+    //            ItemStack itemStack,
+    //            List<ITextComponent> tooltips,
+    //            float durationFactor) {
+    //        if (!list.isEmpty()) {
+    //            tooltips.add(new StringTextComponent(""));
+    //            tooltips.add(
+    //                    new TranslationTextComponent("potion.whenDrank")
+    //                        .mergeStyle(TextFormatting.DARK_PURPLE));
+    //
+    //            for (Pair<Attribute, AttributeModifier> pair : list) {
+    //                tooltips.add(
+    //                        IFormattableAttribute.toComponent(
+    //                                pair.getFirst(), pair.getSecond(),
+    // AttributesLib.getTooltipFlag()));
+    //            }
+    //        }
+    //        return true;
+    //    }
 }

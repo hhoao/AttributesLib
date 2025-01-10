@@ -156,11 +156,11 @@ package dev.shadowsoffire.attributeslib.mixin;
 
 import java.util.List;
 import javax.annotation.Nullable;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.client.util.ITooltipFlag;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.StringTextComponent;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -174,40 +174,40 @@ public class ItemStackMixin {
     // where to rewind to.
     @Inject(
             method =
-                    "getTooltipLines(Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/item/TooltipFlag;)Ljava/util/List;",
+                    "getTooltip(Lnet/minecraft/entity/player/PlayerEntity;Lnet/minecraft/client/util/ITooltipFlag;)Ljava/util/List;",
             at =
                     @At(
                             value = "INVOKE",
                             ordinal = 3,
                             target =
-                                    "net/minecraft/world/item/ItemStack.shouldShowInTooltip(ILnet/minecraft/world/item/ItemStack$TooltipPart;)Z"),
+                                    "Lnet/minecraft/item/ItemStack;func_242394_a(ILnet/minecraft/item/ItemStack$TooltipDisplayFlags;)Z"),
             locals = LocalCapture.CAPTURE_FAILHARD,
             require = 1)
     public void apoth_tooltipMarker(
-            @Nullable Player pPlayer,
-            TooltipFlag pIsAdvanced,
-            CallbackInfoReturnable<List<Component>> cir,
-            List<Component> list) {
-        list.add(new TextComponent("APOTH_REMOVE_MARKER"));
+            @Nullable PlayerEntity pPlayer,
+            ITooltipFlag pIsAdvanced,
+            CallbackInfoReturnable<List<ITextComponent>> cir,
+            List<ITextComponent> list) {
+        list.add(new StringTextComponent("APOTH_REMOVE_MARKER"));
     }
 
     // Injects just after ItemStack.TooltipPart.MODIFIERS is written to the tooltip to remember
     // where to rewind to.
     @Inject(
             method =
-                    "getTooltipLines(Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/item/TooltipFlag;)Ljava/util/List;",
+                    "getTooltip(Lnet/minecraft/entity/player/PlayerEntity;Lnet/minecraft/client/util/ITooltipFlag;)Ljava/util/List;",
             at =
                     @At(
                             value = "INVOKE",
                             ordinal = 1,
-                            target = "net/minecraft/world/item/ItemStack.hasTag()Z"),
+                            target = "Lnet/minecraft/item/ItemStack;hasTag()Z"),
             locals = LocalCapture.CAPTURE_FAILHARD,
             require = 1)
     public void apoth_tooltipMarker2(
-            @Nullable Player pPlayer,
-            TooltipFlag pIsAdvanced,
-            CallbackInfoReturnable<List<Component>> cir,
-            List<Component> list) {
-        list.add(new TextComponent("APOTH_REMOVE_MARKER_2"));
+            @Nullable PlayerEntity pPlayer,
+            ITooltipFlag pIsAdvanced,
+            CallbackInfoReturnable<List<ITextComponent>> cir,
+            List<ITextComponent> list) {
+        list.add(new StringTextComponent("APOTH_REMOVE_MARKER_2"));
     }
 }

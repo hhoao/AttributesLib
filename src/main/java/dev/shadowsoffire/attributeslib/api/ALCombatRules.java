@@ -157,8 +157,8 @@ package dev.shadowsoffire.attributeslib.api;
 import dev.shadowsoffire.attributeslib.ALConfig;
 import dev.shadowsoffire.attributeslib.api.ALObjects.Attributes;
 import java.math.BigDecimal;
-import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.util.DamageSource;
 
 /** Contains AL-specific combat calculations for armor and protection values. */
 public class ALCombatRules {
@@ -183,7 +183,8 @@ public class ALCombatRules {
      */
     public static float getDamageAfterProtection(
             LivingEntity target, DamageSource src, float amount, float protPoints) {
-        if (src.getEntity() instanceof LivingEntity attacker) {
+        if (src.getImmediateSource() instanceof LivingEntity) {
+            LivingEntity attacker = (LivingEntity) src.getImmediateSource();
             float shred = (float) attacker.getAttributeValue(Attributes.PROT_SHRED.get());
             if (shred > 0.001F) {
                 protPoints *= 1 - shred;
@@ -249,7 +250,8 @@ public class ALCombatRules {
      */
     public static float getDamageAfterArmor(
             LivingEntity target, DamageSource src, float amount, float armor, float toughness) {
-        if (src.getEntity() instanceof LivingEntity attacker) {
+        if (src.getImmediateSource() instanceof LivingEntity) {
+            LivingEntity attacker = (LivingEntity) src.getImmediateSource();
             float shred = (float) attacker.getAttributeValue(Attributes.ARMOR_SHRED.get());
             float bypassResist = Math.min(toughness * 0.02F, 0.6F);
             if (shred > 0.001F) {

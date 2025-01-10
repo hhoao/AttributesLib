@@ -156,9 +156,9 @@ package dev.shadowsoffire.placebo.network;
 
 import java.util.Optional;
 import java.util.function.Supplier;
-import net.minecraft.network.FriendlyByteBuf;
-import net.minecraftforge.network.NetworkDirection;
-import net.minecraftforge.network.NetworkEvent;
+import net.minecraft.network.PacketBuffer;
+import net.minecraftforge.fml.network.NetworkDirection;
+import net.minecraftforge.fml.network.NetworkEvent;
 
 /**
  * A Message Provider encapsulates the default components that make up a SimpleChannel message. That
@@ -168,9 +168,7 @@ import net.minecraftforge.network.NetworkEvent;
  */
 public interface MessageProvider<T> {
 
-    /**
-     * @return The class of the message being provided, for registration to the channel.
-     */
+    /** @return The class of the message being provided, for registration to the channel. */
     Class<?> getMsgClass();
 
     /**
@@ -179,7 +177,7 @@ public interface MessageProvider<T> {
      * @param msg The message to serialize.
      * @param buf The byte buffer.
      */
-    void write(T msg, FriendlyByteBuf buf);
+    void write(T msg, PacketBuffer buf);
 
     /**
      * Reads the message from a byte buffer. Must construct a new message object.
@@ -187,7 +185,7 @@ public interface MessageProvider<T> {
      * @param buf The byte buffer. Data must be read in the order it was written.
      * @return A new message instance with the read data.
      */
-    T read(FriendlyByteBuf buf);
+    T read(PacketBuffer buf);
 
     /**
      * Handle the message. Must call {@link NetworkEvent.Context#setPacketHandled(boolean)} to avoid

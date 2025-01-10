@@ -152,32 +152,33 @@
  * This Source Code Form is “Incompatible With Secondary Licenses”, as defined by the Mozilla Public License, v. 2.0.
  */
 
-package dev.shadowsoffire.attributeslib.mixin;
+package dev.shadowsoffire.attributeslib.mixin.client;
 
-import dev.shadowsoffire.attributeslib.util.IEntityOwned;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.player.Abilities;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.screen.inventory.ContainerScreen;
+import net.minecraft.client.gui.screen.inventory.InventoryScreen;
+import net.minecraft.util.text.IFormattableTextComponent;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-/**
- * For the Creative Flight Attribute, the Abilities must be aware of the owning Player so that the
- * fields can be updated to reflect the attribute value.
- */
-@Mixin(Abilities.class)
-public class AbilitiesMixin implements IEntityOwned {
+@Mixin(ContainerScreen.class)
+public class ContainerScreenMixin extends Screen {
 
-    protected LivingEntity owner;
-
-    @Override
-    public LivingEntity getOwner() {
-        return owner;
+    protected ContainerScreenMixin(IFormattableTextComponent pTitle) {
+        super(pTitle);
     }
 
-    @Override
-    public void setOwner(LivingEntity owner) {
-        if (this.owner != null)
-            throw new UnsupportedOperationException("Cannot set the owner when it is already set.");
-        if (owner == null) throw new UnsupportedOperationException("Cannot set the owner to null.");
-        this.owner = owner;
+    @Inject(at = @At("RETURN"), method = "mouseDragged(DDIDD)Z", cancellable = true, require = 1)
+    public void apoth_superMouseDragged(
+            double pMouseX,
+            double pMouseY,
+            int pButton,
+            double pDragX,
+            double pDragY,
+            CallbackInfoReturnable<Boolean> cir) {
+        if ((Object) this instanceof InventoryScreen)
+            cir.setReturnValue(super.mouseDragged(pMouseX, pMouseY, pButton, pDragX, pDragY));
     }
 }

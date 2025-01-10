@@ -161,15 +161,14 @@ import dev.shadowsoffire.attributeslib.util.Comparators;
 import dev.shadowsoffire.attributeslib.util.ItemAccess;
 import java.util.Comparator;
 import java.util.UUID;
-import net.minecraft.ChatFormatting;
-import net.minecraft.core.Registry;
-import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.ai.attributes.Attribute;
-import net.minecraft.world.entity.ai.attributes.AttributeInstance;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.ai.attributes.Attribute;
+import net.minecraft.entity.ai.attributes.AttributeModifier;
+import net.minecraft.entity.ai.attributes.ModifiableAttributeInstance;
+import net.minecraft.util.registry.Registry;
+import net.minecraft.util.text.IFormattableTextComponent;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.TextFormatting;
 
 public class AttributeHelper {
 
@@ -237,17 +236,17 @@ public class AttributeHelper {
             Attribute attribute,
             String name,
             double value,
-            Operation operation) {
-        AttributeInstance inst = entity.getAttribute(attribute);
+            AttributeModifier.Operation operation) {
+        ModifiableAttributeInstance inst = entity.getAttribute(attribute);
         if (inst != null)
-            inst.addPermanentModifier(
+            inst.applyPersistentModifier(
                     new AttributeModifier(AttributesLib.MODID + ":" + name, value, operation));
     }
 
     /** Adds the given modifier to the base value of the attribute. */
     public static void addToBase(
             LivingEntity entity, Attribute attribute, String name, double modifier) {
-        modify(entity, attribute, name, modifier, Operation.ADDITION);
+        modify(entity, attribute, name, modifier, AttributeModifier.Operation.ADDITION);
     }
 
     /**
@@ -256,7 +255,7 @@ public class AttributeHelper {
      */
     public static void addXTimesNewBase(
             LivingEntity entity, Attribute attribute, String name, double modifier) {
-        modify(entity, attribute, name, modifier, Operation.MULTIPLY_BASE);
+        modify(entity, attribute, name, modifier, AttributeModifier.Operation.MULTIPLY_BASE);
     }
 
     /**
@@ -265,7 +264,7 @@ public class AttributeHelper {
      */
     public static void multiplyFinal(
             LivingEntity entity, Attribute attribute, String name, double modifier) {
-        modify(entity, attribute, name, modifier, Operation.MULTIPLY_TOTAL);
+        modify(entity, attribute, name, modifier, AttributeModifier.Operation.MULTIPLY_TOTAL);
     }
 
     @SuppressWarnings("deprecation")
@@ -279,11 +278,11 @@ public class AttributeHelper {
         return Comparators.chained(
                 Comparator.comparing(AttributeModifier::getOperation),
                 Comparator.comparing(AttributeModifier::getAmount),
-                Comparator.comparing(AttributeModifier::getId));
+                Comparator.comparing(AttributeModifier::getOperation));
     }
 
     /** Creates a mutable component starting with the char used to represent a drop-down list. */
-    public static MutableComponent list() {
-        return new TextComponent(" \u2507 ").withStyle(ChatFormatting.GRAY);
+    public static IFormattableTextComponent list() {
+        return new StringTextComponent(" \u2507 ").mergeStyle(TextFormatting.GRAY);
     }
 }

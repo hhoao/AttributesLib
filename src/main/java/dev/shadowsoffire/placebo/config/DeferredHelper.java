@@ -163,36 +163,33 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
-import net.minecraft.core.particles.ParticleOptions;
-import net.minecraft.core.particles.ParticleType;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.sounds.SoundEvent;
+import net.minecraft.block.Block;
+import net.minecraft.enchantment.Enchantment;
+import net.minecraft.entity.Entity;
+import net.minecraft.entity.EntityType;
+import net.minecraft.entity.ai.attributes.Attribute;
+import net.minecraft.entity.item.PaintingType;
+import net.minecraft.fluid.Fluid;
+import net.minecraft.inventory.IInventory;
+import net.minecraft.item.Item;
+import net.minecraft.item.crafting.IRecipe;
+import net.minecraft.item.crafting.IRecipeSerializer;
+import net.minecraft.particles.IParticleData;
+import net.minecraft.particles.ParticleType;
+import net.minecraft.potion.Effect;
+import net.minecraft.potion.Potion;
 import net.minecraft.stats.StatType;
-import net.minecraft.stats.Stats;
-import net.minecraft.world.Container;
-import net.minecraft.world.effect.MobEffect;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EntityType;
-import net.minecraft.world.entity.ai.attributes.Attribute;
-import net.minecraft.world.entity.decoration.Motive;
-import net.minecraft.world.item.Item;
-import net.minecraft.world.item.alchemy.Potion;
-import net.minecraft.world.item.crafting.Recipe;
-import net.minecraft.world.item.crafting.RecipeSerializer;
-import net.minecraft.world.item.enchantment.Enchantment;
-import net.minecraft.world.level.block.Block;
-import net.minecraft.world.level.block.entity.BlockEntity;
-import net.minecraft.world.level.block.entity.BlockEntityType;
-import net.minecraft.world.level.levelgen.feature.Feature;
-import net.minecraft.world.level.levelgen.feature.configurations.FeatureConfiguration;
-import net.minecraft.world.level.material.Fluid;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.SoundEvent;
+import net.minecraft.world.gen.feature.Feature;
+import net.minecraft.world.gen.feature.IFeatureConfig;
 import net.minecraftforge.event.RegistryEvent;
 import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.minecraftforge.fml.RegistryObject;
 import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import net.minecraftforge.registries.ForgeRegistries;
 import net.minecraftforge.registries.IForgeRegistry;
 import net.minecraftforge.registries.IForgeRegistryEntry;
-import net.minecraftforge.registries.RegistryObject;
 
 public class DeferredHelper {
 
@@ -228,8 +225,8 @@ public class DeferredHelper {
         return this.create(path, ForgeRegistries.ITEMS.getRegistrySuperType(), factory);
     }
 
-    public <T extends MobEffect> RegistryObject<T> effect(String path, Supplier<T> factory) {
-        return this.create(path, ForgeRegistries.MOB_EFFECTS.getRegistrySuperType(), factory);
+    public <T extends Effect> RegistryObject<T> effect(String path, Supplier<T> factory) {
+        return this.create(path, ForgeRegistries.POTIONS.getRegistrySuperType(), factory);
     }
 
     public <T extends SoundEvent> RegistryObject<T> sound(String path, Supplier<T> factory) {
@@ -237,12 +234,11 @@ public class DeferredHelper {
     }
 
     public RegistryObject<SoundEvent> sound(String path) {
-
         return sound(path, () -> new SoundEvent(new ResourceLocation(modid, path)));
     }
 
     public <T extends Potion> RegistryObject<T> potion(String path, Supplier<T> factory) {
-        return this.create(path, ForgeRegistries.POTIONS.getRegistrySuperType(), factory);
+        return this.create(path, ForgeRegistries.POTION_TYPES.getRegistrySuperType(), factory);
     }
 
     public <T extends Enchantment> RegistryObject<T> enchant(String path, Supplier<T> factory) {
@@ -254,12 +250,14 @@ public class DeferredHelper {
         return this.create(path, ForgeRegistries.ENTITIES.getRegistrySuperType(), factory);
     }
 
-    public <U extends BlockEntity, T extends BlockEntityType<U>> RegistryObject<T> blockEntity(
-            String path, Supplier<T> factory) {
-        return this.create(path, ForgeRegistries.BLOCK_ENTITIES.getRegistrySuperType(), factory);
-    }
+    //    public <U extends BlockEntity, T extends BlockEntityType<U>> RegistryObject<T>
+    // blockEntity(
+    //            String path, Supplier<T> factory) {
+    //        return this.create(path, ForgeRegistries.BLOCK_ENTITIES.getRegistrySuperType(),
+    // factory);
+    //    }
 
-    public <U extends ParticleOptions, T extends ParticleType<U>> RegistryObject<T> particle(
+    public <U extends IParticleData, T extends ParticleType<U>> RegistryObject<T> particle(
             String path, Supplier<T> factory) {
         return this.create(path, ForgeRegistries.PARTICLE_TYPES.getRegistrySuperType(), factory);
     }
@@ -269,11 +267,11 @@ public class DeferredHelper {
     //        return this.create(path, ForgeRegistries.Keys.MENU, factory);
     //    }
 
-    public <T extends Motive> RegistryObject<T> painting(String path, Supplier<T> factory) {
+    public <T extends PaintingType> RegistryObject<T> painting(String path, Supplier<T> factory) {
         return this.create(path, ForgeRegistries.PAINTING_TYPES.getRegistrySuperType(), factory);
     }
 
-    public <C extends Container, U extends Recipe<C>, T extends RecipeSerializer<U>>
+    public <C extends IInventory, U extends IRecipe<C>, T extends IRecipeSerializer<U>>
             RegistryObject<T> recipeSerializer(String path, Supplier<T> factory) {
         return this.create(
                 path, ForgeRegistries.RECIPE_SERIALIZERS.getRegistrySuperType(), factory);
@@ -284,13 +282,14 @@ public class DeferredHelper {
         return this.create(path, ForgeRegistries.STAT_TYPES.getRegistrySuperType(), factory);
     }
 
-    /**
-     * Creates a custom stat with the given path and formatter.<br>
-     * Calling {@link StatType#get} on {@link Stats#CUSTOM} is required for full registration, for
-     * some reason.
-     *
-     * @see Stats#makeCustomStat
-     */
+    //    /**
+    //     * Creates a custom stat with the given path and formatter.<br>
+    //     * Calling {@link StatType#get} on {@link Stats#CUSTOM} is required for full registration,
+    // for
+    //     * some reason.
+    //     *
+    //     * @see Stats#makeCustomStat
+    //     */
     //    public RegistryObject<ResourceLocation> customStat(String path, StatFormatter formatter) {
     //        ResourceLocation registryName = Registry.CUSTOM_STAT_REGISTRY.getRegistryName();
     //        Registry.CUSTOM_STAT
@@ -304,7 +303,7 @@ public class DeferredHelper {
     //                });
     //    }
 
-    public <U extends FeatureConfiguration, T extends Feature<U>> RegistryObject<T> feature(
+    public <U extends IFeatureConfig, T extends Feature<U>> RegistryObject<T> feature(
             String path, Supplier<T> factory) {
         return this.create(path, ForgeRegistries.FEATURES.getRegistrySuperType(), factory);
     }
@@ -325,8 +324,7 @@ public class DeferredHelper {
     //    }
 
     public <T extends Attribute> RegistryObject<T> attribute(String path, Supplier<T> factory) {
-        Class<Attribute> registrySuperType = ForgeRegistries.ATTRIBUTES.getRegistrySuperType();
-        return this.create(path, registrySuperType, factory);
+        return this.create(path, ForgeRegistries.ATTRIBUTES.getRegistrySuperType(), factory);
     }
 
     protected <P extends IForgeRegistryEntry<P>, T extends P> RegistryObject<T> create(
@@ -389,8 +387,30 @@ public class DeferredHelper {
                         });
     }
 
-    protected static record Registrar<T extends IForgeRegistryEntry<T>, U extends T>(
-            ResourceLocation id,
-            RegistryObject<U> obj,
-            IForgeRegistryEntrySupplier<T, U> factory) {}
+    protected class Registrar<T extends IForgeRegistryEntry<T>, U extends T> {
+        private final ResourceLocation id;
+        private final RegistryObject<U> obj;
+        private final IForgeRegistryEntrySupplier<T, U> factory;
+
+        public Registrar(
+                ResourceLocation id,
+                RegistryObject<U> obj,
+                IForgeRegistryEntrySupplier<T, U> factory) {
+            this.id = id;
+            this.obj = obj;
+            this.factory = factory;
+        }
+
+        public ResourceLocation getId() {
+            return id;
+        }
+
+        public RegistryObject<U> getObj() {
+            return obj;
+        }
+
+        public IForgeRegistryEntrySupplier<T, U> getFactory() {
+            return factory;
+        }
+    }
 }

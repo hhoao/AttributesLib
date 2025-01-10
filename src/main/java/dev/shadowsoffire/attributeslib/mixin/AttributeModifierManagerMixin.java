@@ -160,10 +160,10 @@ import dev.shadowsoffire.attributeslib.util.IAttributeManager;
 import dev.shadowsoffire.attributeslib.util.IEntityOwned;
 import java.util.HashMap;
 import java.util.Map;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.ai.attributes.Attribute;
-import net.minecraft.world.entity.ai.attributes.AttributeInstance;
-import net.minecraft.world.entity.ai.attributes.AttributeMap;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.ai.attributes.Attribute;
+import net.minecraft.entity.ai.attributes.AttributeModifierManager;
+import net.minecraft.entity.ai.attributes.ModifiableAttributeInstance;
 import net.minecraftforge.common.MinecraftForge;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -179,12 +179,13 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
  * <p>The client event is posted from the client packet listener as this method is unreliable on the
  * client due to how attribute sync is done.
  */
-@Mixin(AttributeMap.class)
-public class AttributeMapMixin implements IEntityOwned, IAttributeManager {
+@Mixin(AttributeModifierManager.class)
+public class AttributeModifierManagerMixin implements IEntityOwned, IAttributeManager {
 
     protected LivingEntity owner;
     private boolean areAttributesUpdating;
-    private Map<Attribute, Pair<AttributeInstance, Double>> updatingAttributes = new HashMap<>();
+    private Map<Attribute, Pair<ModifiableAttributeInstance, Double>> updatingAttributes =
+            new HashMap<>();
 
     @Override
     public LivingEntity getOwner() {
@@ -213,7 +214,7 @@ public class AttributeMapMixin implements IEntityOwned, IAttributeManager {
             this.updatingAttributes.clear();
         } else {
             // Otherwise, cycle through each instance and get the new values, post the results
-            if (!this.getOwner().level.isClientSide) {
+            if (!this.getOwner().world.isRemote) {
                 this.updatingAttributes.forEach(
                         (attr, pair) ->
                                 MinecraftForge.EVENT_BUS.post(
@@ -239,16 +240,16 @@ public class AttributeMapMixin implements IEntityOwned, IAttributeManager {
     @Inject(
             at = @At(value = "HEAD"),
             method =
-                    "onAttributeModified(Lnet/minecraft/world/entity/ai/attributes/AttributeInstance;)V",
+                    "addInstance(Lnet/minecraft/entity/ai/attributes/ModifiableAttributeInstance;)V",
             require = 1)
-    public void apoth_attrModifiedEvent(AttributeInstance inst, CallbackInfo ci) {
+    public void apoth_attrModifiedEvent(ModifiableAttributeInstance inst, CallbackInfo ci) {
         if (owner == null)
             throw new RuntimeException("An AttributeMap object was modified without a set owner!");
 
-        if (!this.areAttributesUpdating() && !owner.level.isClientSide) {
+        if (!this.areAttributesUpdating() && !owner.world.isRemote) {
             // This call site is only valid on the server, because the client nukes and reapplies
             // all attribute modifiers when received.
-            double oldValue = ((AttributeInstanceAccessor) inst).getCachedValue();
+            double oldValue = ((AttributeInstanceAccessor) inst).getModifiedValue();
             double newValue =
                     inst.getValue(); // Calling getValue will compute the value once marked dirty.
             if (oldValue != newValue) {
@@ -260,7 +261,7 @@ public class AttributeMapMixin implements IEntityOwned, IAttributeManager {
             // after update
             this.updatingAttributes.putIfAbsent(
                     inst.getAttribute(),
-                    Pair.of(inst, ((AttributeInstanceAccessor) inst).getCachedValue()));
+                    Pair.of(inst, ((AttributeInstanceAccessor) inst).getModifiedValue()));
         }
     }
 }

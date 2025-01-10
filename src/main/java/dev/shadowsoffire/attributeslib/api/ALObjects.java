@@ -166,15 +166,13 @@ import dev.shadowsoffire.attributeslib.mobfx.GrievousEffect;
 import dev.shadowsoffire.attributeslib.mobfx.KnowledgeEffect;
 import dev.shadowsoffire.attributeslib.mobfx.SunderingEffect;
 import dev.shadowsoffire.attributeslib.mobfx.VitalityEffect;
-import net.minecraft.core.particles.SimpleParticleType;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.sounds.SoundEvent;
-import net.minecraft.world.damagesource.DamageSource;
-import net.minecraft.world.entity.ai.attributes.Attribute;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation;
-import net.minecraft.world.entity.ai.attributes.RangedAttribute;
-import net.minecraftforge.registries.RegistryObject;
-import org.jetbrains.annotations.ApiStatus;
+import net.minecraft.entity.ai.attributes.Attribute;
+import net.minecraft.entity.ai.attributes.RangedAttribute;
+import net.minecraft.particles.BasicParticleType;
+import net.minecraft.util.DamageSource;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.SoundEvent;
+import net.minecraftforge.fml.RegistryObject;
 
 public class ALObjects {
 
@@ -189,7 +187,7 @@ public class ALObjects {
                         () ->
                                 new RangedAttribute(
                                                 "attributeslib:armor_pierce", 0.0D, 0.0D, 1000.0D)
-                                        .setSyncable(true));
+                                        .setShouldWatch(true));
 
         /**
          * Percentage armor reduction. Base value = (0.0) = 0% of armor reduced during damage
@@ -201,7 +199,7 @@ public class ALObjects {
                         () ->
                                 new PercentBasedAttribute(
                                                 "attributeslib:armor_shred", 0.0D, 0.0D, 2.0D)
-                                        .setSyncable(true));
+                                        .setShouldWatch(true));
 
         /** Arrow Damage. Base value = (1.0) = 100% default arrow damage */
         public static final RegistryObject<Attribute> ARROW_DAMAGE =
@@ -210,7 +208,7 @@ public class ALObjects {
                         () ->
                                 new PercentBasedAttribute(
                                                 "attributeslib:arrow_damage", 1.0D, 0.0D, 10.0D)
-                                        .setSyncable(true));
+                                        .setShouldWatch(true));
 
         /**
          * Arrow Velocity. Base value = (1.0) = 100% default arrow velocity
@@ -224,7 +222,7 @@ public class ALObjects {
                         () ->
                                 new PercentBasedAttribute(
                                                 "attributeslib:arrow_velocity", 1.0D, 0.0D, 10.0D)
-                                        .setSyncable(true));
+                                        .setShouldWatch(true));
 
         /** Bonus magic damage that slows enemies hit. Base value = (0.0) = 0 damage */
         public static final RegistryObject<Attribute> COLD_DAMAGE =
@@ -233,7 +231,7 @@ public class ALObjects {
                         () ->
                                 new RangedAttribute(
                                                 "attributeslib:cold_damage", 0.0D, 0.0D, 1000.0D)
-                                        .setSyncable(true));
+                                        .setShouldWatch(true));
 
         /**
          * Chance that any attack will critically strike. Base value = (0.05) = 5% chance to
@@ -246,7 +244,7 @@ public class ALObjects {
                         () ->
                                 new PercentBasedAttribute(
                                                 "attributeslib:crit_chance", 0.05D, 0.0D, 10.0D)
-                                        .setSyncable(true));
+                                        .setShouldWatch(true));
 
         /**
          * Amount of damage caused by critical strikes. Base value = (1.5) = 150% normal damage
@@ -259,7 +257,7 @@ public class ALObjects {
                         () ->
                                 new PercentBasedAttribute(
                                                 "attributeslib:crit_damage", 1.5D, 1.0D, 100.0D)
-                                        .setSyncable(true));
+                                        .setShouldWatch(true));
 
         /** Bonus physical damage dealt equal to enemy's current health. Base value = (0.0) = 0% */
         public static final RegistryObject<Attribute> CURRENT_HP_DAMAGE =
@@ -268,7 +266,7 @@ public class ALObjects {
                         () ->
                                 new PercentBasedAttribute(
                                                 "attributeslib:current_hp_damage", 0.0D, 0.0D, 1.0D)
-                                        .setSyncable(true));
+                                        .setShouldWatch(true));
 
         /**
          * Chance to dodge incoming melee damage. Base value = (0.0) = 0% chance to dodge.<br>
@@ -284,7 +282,7 @@ public class ALObjects {
                         () ->
                                 new PercentBasedAttribute(
                                                 "attributeslib:dodge_chance", 0.0D, 0.0D, 1.0D)
-                                        .setSyncable(true));
+                                        .setShouldWatch(true));
 
         /** How fast a ranged weapon is charged. Base Value = (1.0) = 100% default draw speed. */
         public static final RegistryObject<Attribute> DRAW_SPEED =
@@ -293,7 +291,7 @@ public class ALObjects {
                         () ->
                                 new PercentBasedAttribute(
                                                 "attributeslib:draw_speed", 1.0D, 0.0D, 4.0D)
-                                        .setSyncable(true));
+                                        .setShouldWatch(true));
 
         /**
          * Experience mulitplier, from killing mobs or breaking ores. Base value = (1.0) = 100% xp
@@ -308,7 +306,7 @@ public class ALObjects {
                                                 1.0D,
                                                 0.0D,
                                                 1000.0D)
-                                        .setSyncable(true));
+                                        .setShouldWatch(true));
 
         /** Bonus magic damage that burns enemies hit. Base value = (0.0) = 0 damage */
         public static final RegistryObject<Attribute> FIRE_DAMAGE =
@@ -317,7 +315,7 @@ public class ALObjects {
                         () ->
                                 new RangedAttribute(
                                                 "attributeslib:fire_damage", 0.0D, 0.0D, 1000.0D)
-                                        .setSyncable(true));
+                                        .setShouldWatch(true));
 
         /** Extra health that regenerates when not taking damage. Base value = (0.0) = 0 damage */
         public static final RegistryObject<Attribute> GHOST_HEALTH =
@@ -326,7 +324,7 @@ public class ALObjects {
                         () ->
                                 new RangedAttribute(
                                                 "attributeslib:ghost_health", 0.0D, 0.0D, 1000.0D)
-                                        .setSyncable(true));
+                                        .setShouldWatch(true));
 
         /** Adjusts all healing received. Base value = (1.0) = 100% xp gained. */
         public static final RegistryObject<Attribute> HEALING_RECEIVED =
@@ -338,7 +336,7 @@ public class ALObjects {
                                                 1.0D,
                                                 0.0D,
                                                 1000.0D)
-                                        .setSyncable(true));
+                                        .setShouldWatch(true));
 
         /** Percent of physical damage converted to health. Base value = (0.0) = 0% */
         public static final RegistryObject<Attribute> LIFE_STEAL =
@@ -347,7 +345,7 @@ public class ALObjects {
                         () ->
                                 new PercentBasedAttribute(
                                                 "attributeslib:life_steal", 0.0D, 0.0D, 10.0D)
-                                        .setSyncable(true));
+                                        .setShouldWatch(true));
 
         /** Mining Speed. Base value = (1.0) = 100% default break speed */
         public static final RegistryObject<Attribute> MINING_SPEED =
@@ -356,7 +354,7 @@ public class ALObjects {
                         () ->
                                 new PercentBasedAttribute(
                                                 "attributeslib:mining_speed", 1.0D, 0.0D, 10.0D)
-                                        .setSyncable(true));
+                                        .setShouldWatch(true));
 
         /** Percent of physical damage converted to absorption hearts. Base value = (0.0) = 0% */
         public static final RegistryObject<Attribute> OVERHEAL =
@@ -365,7 +363,7 @@ public class ALObjects {
                         () ->
                                 new PercentBasedAttribute(
                                                 "attributeslib:overheal", 0.0D, 0.0D, 10.0D)
-                                        .setSyncable(true));
+                                        .setShouldWatch(true));
 
         /**
          * Flat protection penetration. Base value = (0.0) = 0 protection points bypassed during
@@ -376,7 +374,7 @@ public class ALObjects {
                         "prot_pierce",
                         () ->
                                 new RangedAttribute("attributeslib:prot_pierce", 0.0D, 0.0D, 34.0D)
-                                        .setSyncable(true));
+                                        .setShouldWatch(true));
 
         /**
          * Percentage protection reduction. Base value = (0.0) = 0% of protection points bypassed
@@ -388,7 +386,7 @@ public class ALObjects {
                         () ->
                                 new PercentBasedAttribute(
                                                 "attributeslib:prot_shred", 0.0D, 0.0D, 1.0D)
-                                        .setSyncable(true));
+                                        .setShouldWatch(true));
 
         /** Boolean attribute for if elytra flight is enabled. Default value = false. */
         public static final RegistryObject<Attribute> ELYTRA_FLIGHT =
@@ -396,7 +394,7 @@ public class ALObjects {
                         "elytra_flight",
                         () ->
                                 new BooleanAttribute("attributeslib:elytra_flight", false)
-                                        .setSyncable(true));
+                                        .setShouldWatch(true));
 
         /** Boolean attribute for if creative flight is enabled. Default value = false. */
         public static final RegistryObject<Attribute> CREATIVE_FLIGHT =
@@ -404,9 +402,8 @@ public class ALObjects {
                         "creative_flight",
                         () ->
                                 new BooleanAttribute("attributeslib:creative_flight", false)
-                                        .setSyncable(true));
+                                        .setShouldWatch(true));
 
-        @ApiStatus.Internal
         public static void bootstrap() {}
     }
 
@@ -452,17 +449,14 @@ public class ALObjects {
         public static final RegistryObject<FlyingEffect> FLYING =
                 R.effect("flying", FlyingEffect::new);
 
-        @ApiStatus.Internal
         public static void bootstrap() {}
     }
 
     public static class Particles {
 
-        public static final RegistryObject<SimpleParticleType> APOTH_CRIT =
-                R.particle("apoth_crit", () -> new SimpleParticleType(false));
+        public static final RegistryObject<BasicParticleType> APOTH_CRIT =
+                R.particle("apoth_crit", () -> new BasicParticleType(false));
 
-        //
-        @ApiStatus.Internal
         public static void bootstrap() {}
     }
 
@@ -470,7 +464,6 @@ public class ALObjects {
 
         public static final RegistryObject<SoundEvent> DODGE = R.sound("dodge");
 
-        @ApiStatus.Internal
         public static void bootstrap() {}
     }
 
@@ -489,8 +482,8 @@ public class ALObjects {
         /** Damage type used by {@link MobEffects#BLEEDING}. Bypasses armor. */
         public static final DamageSource BLEEDING =
                 new DamageSource("bleeding")
-                        .bypassArmor() // 可选：无视护甲
-                        .setMagic();
+                        .setDamageBypassesArmor() // 可选：无视护甲
+                        .setMagicDamage();
 
         /**
          * Damage type used by {@link MobEffects#DETONATION}. Bypasses armor, and is marked as magic
@@ -517,11 +510,9 @@ public class ALObjects {
          */
         public static final DamageSource COLD_DAMAGE = new DamageSource("cold_damage");
 
-        @ApiStatus.Internal
         public static void bootstrap() {}
     }
 
-    @ApiStatus.Internal
     public static void bootstrap() {
         Attributes.bootstrap();
         MobEffects.bootstrap();

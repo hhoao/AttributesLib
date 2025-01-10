@@ -156,14 +156,13 @@ package dev.shadowsoffire.attributeslib.api.client;
 
 import java.util.List;
 import java.util.ListIterator;
-import net.minecraft.network.chat.Component;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.client.util.ITooltipFlag;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.text.ITextComponent;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.player.PlayerEvent;
-import org.jetbrains.annotations.Nullable;
 
 /**
  * This event is used to add additional attribute tooltip lines without having to manually locate
@@ -175,16 +174,16 @@ import org.jetbrains.annotations.Nullable;
 public class AddAttributeTooltipsEvent extends PlayerEvent {
 
     protected final ItemStack stack;
-    protected final List<Component> tooltip;
-    protected final ListIterator<Component> attributeTooltipIterator;
-    protected final TooltipFlag flag;
+    protected final List<ITextComponent> tooltip;
+    protected final ListIterator<ITextComponent> attributeTooltipIterator;
+    protected final ITooltipFlag flag;
 
     public AddAttributeTooltipsEvent(
             ItemStack stack,
-            @Nullable Player player,
-            List<Component> tooltip,
-            ListIterator<Component> attributeTooltipIterator,
-            TooltipFlag flag) {
+            PlayerEntity player,
+            List<ITextComponent> tooltip,
+            ListIterator<ITextComponent> attributeTooltipIterator,
+            ITooltipFlag flag) {
         super(player);
         this.stack = stack;
         this.tooltip = tooltip;
@@ -196,7 +195,7 @@ public class AddAttributeTooltipsEvent extends PlayerEvent {
      * Use to determine if the advanced information on item tooltips is being shown, toggled by
      * F3+H.
      */
-    public TooltipFlag getFlags() {
+    public ITooltipFlag getFlags() {
         return this.flag;
     }
 
@@ -206,12 +205,12 @@ public class AddAttributeTooltipsEvent extends PlayerEvent {
     }
 
     /** The {@link ItemStack}'s full tooltip. */
-    public List<Component> getTooltip() {
+    public List<ITextComponent> getTooltip() {
         return this.tooltip;
     }
 
     /** Returns an iterator pointed at the tail of the attribute tooltips. */
-    public ListIterator<Component> getAttributeTooltipIterator() {
+    public ListIterator<ITextComponent> getAttributeTooltipIterator() {
         return this.attributeTooltipIterator;
     }
 
@@ -220,7 +219,7 @@ public class AddAttributeTooltipsEvent extends PlayerEvent {
      * tooltips.
      */
     @Override
-    @Nullable public Player getEntity() {
+    public PlayerEntity getEntity() {
         return super.getPlayer();
     }
 }

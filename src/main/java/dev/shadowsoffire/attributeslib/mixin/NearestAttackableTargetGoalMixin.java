@@ -156,11 +156,11 @@ package dev.shadowsoffire.attributeslib.mixin;
 
 import java.util.function.Predicate;
 import javax.annotation.Nullable;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.Mob;
-import net.minecraft.world.entity.ai.goal.target.NearestAttackableTargetGoal;
-import net.minecraft.world.entity.ai.goal.target.TargetGoal;
-import net.minecraft.world.entity.ai.targeting.TargetingConditions;
+import net.minecraft.entity.EntityPredicate;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.MobEntity;
+import net.minecraft.entity.ai.goal.NearestAttackableTargetGoal;
+import net.minecraft.entity.ai.goal.TargetGoal;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -170,20 +170,20 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(NearestAttackableTargetGoal.class)
 public abstract class NearestAttackableTargetGoalMixin extends TargetGoal {
 
-    public NearestAttackableTargetGoalMixin(Mob pMob, boolean pMustSee) {
+    public NearestAttackableTargetGoalMixin(MobEntity pMob, boolean pMustSee) {
         super(pMob, pMustSee);
     }
 
     @Nullable Predicate<LivingEntity> ctorTargetPredicate;
 
-    @Shadow TargetingConditions targetConditions;
+    @Shadow EntityPredicate targetEntitySelector;
 
     @Inject(
             method =
-                    "<init>(Lnet/minecraft/world/entity/Mob;Ljava/lang/Class;IZZLjava/util/function/Predicate;)V",
+                    "<init>(Lnet/minecraft/entity/MobEntity;Ljava/lang/Class;IZZLjava/util/function/Predicate;)V",
             at = @At("TAIL"))
     private void apoth_cachePredicate(
-            Mob pMob,
+            MobEntity pMob,
             Class<?> pTargetType,
             int pRandomInterval,
             boolean pMustSee,
@@ -202,8 +202,8 @@ public abstract class NearestAttackableTargetGoalMixin extends TargetGoal {
      * <p>Technically {@link TargetGoal#canContinueToUse()} uses the real value, which should kick
      * it back after a delay.
      */
-    @Inject(method = "findTarget()V", at = @At("HEAD"))
+    @Inject(method = "findNearestTarget()V", at = @At("HEAD"))
     private void apoth_updateFollowRange(CallbackInfo ci) {
-        this.targetConditions.range(this.getFollowDistance());
+        this.targetEntitySelector.setDistance(this.getTargetDistance());
     }
 }

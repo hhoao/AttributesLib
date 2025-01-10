@@ -201,7 +201,8 @@ public class ConfigCategory implements Map<String, Property> {
 
     @Override
     public boolean equals(Object obj) {
-        if (obj instanceof ConfigCategory cat) {
+        if (obj instanceof ConfigCategory) {
+            ConfigCategory cat = (ConfigCategory) (obj);
             return this.name.equals(cat.name) && this.children.equals(cat.children);
         }
 

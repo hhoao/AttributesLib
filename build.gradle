@@ -16,7 +16,7 @@ plugins {
     id 'eclipse'
     id 'idea'
     id 'net.minecraftforge.gradle' version '[6.0.16,6.2)'
-    id("com.diffplug.spotless") version "6.25.0"
+    id("com.diffplug.spotless") version "6.10.0"
 }
 
 apply plugin: 'org.spongepowered.mixin'
@@ -30,7 +30,7 @@ base {
 }
 
 java {
-    toolchain.languageVersion = JavaLanguageVersion.of(17)
+    toolchain.languageVersion = JavaLanguageVersion.of(8)
 }
 
 minecraft {
@@ -307,7 +307,6 @@ jar {
 spotless {
     java {
         googleJavaFormat().style("AOSP")
-        formatAnnotations()
         var licenseBuilder = new StringBuilder("/*\n")
         for (final def line in Files.readAllLines(Paths.get(rootProject.projectDir.absolutePath, "LICENSE.txt")) ) {
             licenseBuilder.append(" * ${line}\n")

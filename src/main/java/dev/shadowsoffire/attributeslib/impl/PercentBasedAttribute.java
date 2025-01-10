@@ -155,12 +155,12 @@
 package dev.shadowsoffire.attributeslib.impl;
 
 import dev.shadowsoffire.attributeslib.api.IFormattableAttribute;
-import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.network.chat.TranslatableComponent;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation;
-import net.minecraft.world.entity.ai.attributes.RangedAttribute;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.client.util.ITooltipFlag;
+import net.minecraft.entity.ai.attributes.AttributeModifier;
+import net.minecraft.entity.ai.attributes.RangedAttribute;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.text.IFormattableTextComponent;
+import net.minecraft.util.text.TranslationTextComponent;
 
 /**
  * A Percentile Based Attribute is one which always displays modifiers as percentages, even addition
@@ -176,9 +176,14 @@ public class PercentBasedAttribute extends RangedAttribute implements IFormattab
     }
 
     @Override
-    public MutableComponent toValueComponent(Operation op, double value, TooltipFlag flag) {
-        return new TranslatableComponent(
-                "attributeslib.value.percent",
-                ItemStack.ATTRIBUTE_MODIFIER_FORMAT.format(value * 100));
+    public IFormattableTextComponent toComponent(AttributeModifier modif, ITooltipFlag flag) {
+        return IFormattableAttribute.super.toComponent(modif, flag);
+    }
+
+    @Override
+    public IFormattableTextComponent toValueComponent(
+            AttributeModifier.Operation op, double value, ITooltipFlag flag) {
+        return new TranslationTextComponent(
+                "attributeslib.value.percent", ItemStack.DECIMALFORMAT.format(value * 100));
     }
 }

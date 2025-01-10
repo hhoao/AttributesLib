@@ -156,7 +156,7 @@ package dev.shadowsoffire.attributeslib.mixin;
 
 import dev.shadowsoffire.attributeslib.AttributesLib;
 import dev.shadowsoffire.attributeslib.api.ALCombatRules;
-import net.minecraft.world.damagesource.CombatRules;
+import net.minecraft.util.CombatRules;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 

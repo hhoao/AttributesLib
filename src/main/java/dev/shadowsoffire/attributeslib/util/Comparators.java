@@ -155,8 +155,8 @@
 package dev.shadowsoffire.attributeslib.util;
 
 import java.util.Comparator;
-import net.minecraft.core.Registry;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.registry.Registry;
 
 /** Misc Comparator Utils */
 public class Comparators {

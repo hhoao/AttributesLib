@@ -160,9 +160,9 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
-import net.minecraft.ResourceLocationException;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
+import net.minecraft.resources.IResourceManagerReloadListener;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.ResourceLocationException;
 import repack.evalex.Expression;
 
 public class ALConfig {
@@ -219,16 +219,14 @@ public class ALConfig {
                         "Protection Formula",
                         "combat_rules",
                         "1 - min(0.025 * protPoints, 0.85)",
-                        """
-                The protection damage reduction formula.
-                Computed after Prot Pierce and Prot Shred are applied.
-                Arguments:
-                    'protPoints' - The number of protection points the user has after reductions.
-                Output:
-                    The percentage of damage taken after protection has been applied, from 0 (no damage taken) to 1 (full damage taken).
-                Reference:
-                    See https://github.com/ezylang/EvalEx#usage-examples for how to write expressions.
-                """,
+                        "The protection damage reduction formula.\n"
+                                + "                Computed after Prot Pierce and Prot Shred are applied.\n"
+                                + "                Arguments:\n"
+                                + "                    'protPoints' - The number of protection points the user has after reductions.\n"
+                                + "                Output:\n"
+                                + "                    The percentage of damage taken after protection has been applied, from 0 (no damage taken) to 1 (full damage taken).\n"
+                                + "                Reference:\n"
+                                + "                    See https://github.com/ezylang/EvalEx#usage-examples for how to write expressions.",
                         "protPoints");
 
         aValueExpr =
@@ -237,15 +235,14 @@ public class ALConfig {
                         "A-Value Formula",
                         "combat_rules",
                         "if(damage < 20, 10, 10 + (damage - 20) / 2)",
-                        """
-                The a-value formula, which computes an intermediate used in the armor formula.
-                Arguments:
-                    'damage' - The damage of the incoming attack.
-                Output:
-                    The a-value, which will be supplied as an argument to the armor formula.
-                Reference:
-                    See https://github.com/ezylang/EvalEx#usage-examples for how to write expressions.
-                """,
+                        "The a-value formula, which computes an intermediate used in the armor formula.\n"
+                                + "                Arguments:\n"
+                                + "                    'damage' - The damage of the incoming attack.\n"
+                                + "                Output:\n"
+                                + "                    The a-value, which will be supplied as an argument to the armor formula.\n"
+                                + "                Reference:\n"
+                                + "                    See https://github.com/ezylang/EvalEx#usage-examples for how to write expressions.\n"
+                                + "                \"\"\"",
                         "damage");
 
         armorExpr =
@@ -254,21 +251,19 @@ public class ALConfig {
                         "Armor Formula",
                         "combat_rules",
                         "a / (a + armor)",
-                        """
-                The armor damage reduction formula.
-                Computed after Armor Pierce and Armor Shred are applied.
-                Arguments:
-                    'a' - The a-value computed by the a-value formula.
-                    'damage' - The damage of the incoming attack.
-                    'armor' - The armor value of the user after reductions.
-                    'toughness' - The armor toughness value of the user.
-                Output:
-                    The percentage of damage taken after armor has been applied, from 0 (no damage taken) to 1 (full damage taken).
-                Reference:
-                    See https://github.com/ezylang/EvalEx#usage-examples for how to write expressions.
-                Note:
-                    The vanilla formula is: 1 - min(max(armor - damage / (2 + toughness / 4), armor / 5), 20) / 25
-                """,
+                        "The armor damage reduction formula.\n"
+                                + "                Computed after Armor Pierce and Armor Shred are applied.\n"
+                                + "                Arguments:\n"
+                                + "                    'a' - The a-value computed by the a-value formula.\n"
+                                + "                    'damage' - The damage of the incoming attack.\n"
+                                + "                    'armor' - The armor value of the user after reductions.\n"
+                                + "                    'toughness' - The armor toughness value of the user.\n"
+                                + "                Output:\n"
+                                + "                    The percentage of damage taken after armor has been applied, from 0 (no damage taken) to 1 (full damage taken).\n"
+                                + "                Reference:\n"
+                                + "                    See https://github.com/ezylang/EvalEx#usage-examples for how to write expressions.\n"
+                                + "                Note:\n"
+                                + "                    The vanilla formula is: 1 - min(max(armor - damage / (2 + toughness / 4), armor / 5), 20) / 25",
                         "a",
                         "damage",
                         "armor",
@@ -289,7 +284,7 @@ public class ALConfig {
         return armorExpr;
     }
 
-    public static ResourceManagerReloadListener makeReloader() {
+    public static IResourceManagerReloadListener makeReloader() {
         return resman -> load();
     }
 

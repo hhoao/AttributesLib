@@ -155,8 +155,8 @@
 package dev.shadowsoffire.attributeslib.mixin;
 
 import dev.shadowsoffire.attributeslib.api.ALObjects.Attributes;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.item.ItemStack;
 import net.minecraftforge.common.extensions.IForgeItem;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;

@@ -155,14 +155,12 @@
 package dev.shadowsoffire.attributeslib.impl;
 
 import dev.shadowsoffire.attributeslib.api.IFormattableAttribute;
-import net.minecraft.ChatFormatting;
-import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.network.chat.TranslatableComponent;
-import net.minecraft.world.entity.ai.attributes.Attribute;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation;
-import net.minecraft.world.item.TooltipFlag;
-import org.jetbrains.annotations.Nullable;
+import net.minecraft.client.util.ITooltipFlag;
+import net.minecraft.entity.ai.attributes.Attribute;
+import net.minecraft.entity.ai.attributes.AttributeModifier;
+import net.minecraft.util.text.IFormattableTextComponent;
+import net.minecraft.util.text.TextFormatting;
+import net.minecraft.util.text.TranslationTextComponent;
 
 /**
  * A Boolean Attribute is one which displays modifiers as "Enables" or "Forcibly Disables".<br>
@@ -187,47 +185,47 @@ public class BooleanAttribute extends Attribute implements IFormattableAttribute
     }
 
     @Override
-    public MutableComponent toValueComponent(
-            @Nullable Operation op, double value, TooltipFlag flag) {
+    public IFormattableTextComponent toValueComponent(
+            AttributeModifier.Operation op, double value, ITooltipFlag flag) {
         if (op == null) {
-            return new TranslatableComponent(
+            return new TranslationTextComponent(
                     "attributeslib.value.boolean." + (value > 0 ? "enabled" : "disabled"));
-        } else if (op == Operation.ADDITION && (int) value == 1) {
-            return new TranslatableComponent("attributeslib.value.boolean.enable");
-        } else if (op == Operation.MULTIPLY_TOTAL && (int) value == -1) {
-            return new TranslatableComponent("attributeslib.value.boolean.force_disable");
-        } else return new TranslatableComponent("attributeslib.value.boolean.invalid");
+        } else if (op == AttributeModifier.Operation.ADDITION && (int) value == 1) {
+            return new TranslationTextComponent("attributeslib.value.boolean.enable");
+        } else if (op == AttributeModifier.Operation.MULTIPLY_TOTAL && (int) value == -1) {
+            return new TranslationTextComponent("attributeslib.value.boolean.force_disable");
+        } else return new TranslationTextComponent("attributeslib.value.boolean.invalid");
     }
 
     @Override
-    public MutableComponent toComponent(AttributeModifier modif, TooltipFlag flag) {
+    public IFormattableTextComponent toComponent(AttributeModifier modif, ITooltipFlag flag) {
         Attribute attr = this.ths();
         double value = modif.getAmount();
 
-        MutableComponent comp;
+        IFormattableTextComponent comp;
 
         if (value > 0.0D) {
             comp =
-                    new TranslatableComponent(
+                    new TranslationTextComponent(
                                     "attributeslib.modifier.bool",
                                     this.toValueComponent(modif.getOperation(), value, flag),
-                                    new TranslatableComponent(attr.getDescriptionId()))
-                            .withStyle(ChatFormatting.BLUE);
+                                    new TranslationTextComponent(attr.getAttributeName()))
+                            .mergeStyle(TextFormatting.BLUE);
         } else {
             value *= -1.0D;
             comp =
-                    new TranslatableComponent(
+                    new TranslationTextComponent(
                                     "attributeslib.modifier.bool",
                                     this.toValueComponent(modif.getOperation(), value, flag),
-                                    new TranslatableComponent(attr.getDescriptionId()))
-                            .withStyle(ChatFormatting.RED);
+                                    new TranslationTextComponent(attr.getAttributeName()))
+                            .mergeStyle(TextFormatting.RED);
         }
 
         return comp.append(this.getDebugInfo(modif, flag));
     }
 
     @Override
-    public double sanitizeValue(double value) {
+    public double clampValue(double value) {
         return Math.max(value, 0);
     }
 }

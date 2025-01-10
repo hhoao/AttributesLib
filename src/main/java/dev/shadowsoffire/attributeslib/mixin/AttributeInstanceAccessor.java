@@ -155,11 +155,11 @@
 package dev.shadowsoffire.attributeslib.mixin;
 
 import dev.shadowsoffire.attributeslib.api.AttributeChangedValueEvent;
-import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.entity.ai.attributes.ModifiableAttributeInstance;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.gen.Accessor;
 
-@Mixin(AttributeInstance.class)
+@Mixin(ModifiableAttributeInstance.class)
 public interface AttributeInstanceAccessor {
 
     /**
@@ -169,5 +169,5 @@ public interface AttributeInstanceAccessor {
      * application of the latest modifier (the one causing the change).
      */
     @Accessor
-    public double getCachedValue();
+    public double getModifiedValue();
 }

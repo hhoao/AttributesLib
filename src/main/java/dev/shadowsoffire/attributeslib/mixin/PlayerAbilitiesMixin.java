@@ -152,33 +152,32 @@
  * This Source Code Form is “Incompatible With Secondary Licenses”, as defined by the Mozilla Public License, v. 2.0.
  */
 
-package dev.shadowsoffire.attributeslib.mixin.client;
+package dev.shadowsoffire.attributeslib.mixin;
 
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
-import net.minecraft.client.gui.screens.inventory.InventoryScreen;
-import net.minecraft.network.chat.Component;
+import dev.shadowsoffire.attributeslib.util.IEntityOwned;
+import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.player.PlayerAbilities;
 import org.spongepowered.asm.mixin.Mixin;
-import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Inject;
-import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(AbstractContainerScreen.class)
-public class AbstractContainerScreenMixin extends Screen {
+/**
+ * For the Creative Flight Attribute, the Abilities must be aware of the owning Player so that the
+ * fields can be updated to reflect the attribute value.
+ */
+@Mixin(PlayerAbilities.class)
+public class PlayerAbilitiesMixin implements IEntityOwned {
 
-    protected AbstractContainerScreenMixin(Component pTitle) {
-        super(pTitle);
+    protected LivingEntity owner;
+
+    @Override
+    public LivingEntity getOwner() {
+        return owner;
     }
 
-    @Inject(at = @At("RETURN"), method = "mouseDragged(DDIDD)Z", cancellable = true, require = 1)
-    public void apoth_superMouseDragged(
-            double pMouseX,
-            double pMouseY,
-            int pButton,
-            double pDragX,
-            double pDragY,
-            CallbackInfoReturnable<Boolean> cir) {
-        if ((Object) this instanceof InventoryScreen)
-            cir.setReturnValue(super.mouseDragged(pMouseX, pMouseY, pButton, pDragX, pDragY));
+    @Override
+    public void setOwner(LivingEntity owner) {
+        if (this.owner != null)
+            throw new UnsupportedOperationException("Cannot set the owner when it is already set.");
+        if (owner == null) throw new UnsupportedOperationException("Cannot set the owner to null.");
+        this.owner = owner;
     }
 }

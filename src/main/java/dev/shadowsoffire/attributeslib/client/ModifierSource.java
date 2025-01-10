@@ -154,21 +154,21 @@
 
 package dev.shadowsoffire.attributeslib.client;
 
-import static net.minecraft.client.gui.GuiComponent.blit;
+import static net.minecraft.client.gui.AbstractGui.blit;
 
-import com.mojang.blaze3d.vertex.PoseStack;
+import com.mojang.blaze3d.matrix.MatrixStack;
 import dev.shadowsoffire.attributeslib.util.Comparators;
 import java.util.Comparator;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.Font;
-import net.minecraft.client.renderer.entity.ItemRenderer;
+import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.client.renderer.ItemRenderer;
+import net.minecraft.client.renderer.texture.PotionSpriteUploader;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.resources.MobEffectTextureManager;
-import net.minecraft.core.Registry;
-import net.minecraft.world.effect.MobEffect;
-import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.entity.MobEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.potion.Effect;
+import net.minecraft.potion.EffectInstance;
+import net.minecraft.util.registry.Registry;
 
 /**
  * A Modifier Source is a container object around any potential Attribute Modifier Source.<br>
@@ -176,11 +176,11 @@ import net.minecraft.world.item.ItemStack;
  */
 public abstract class ModifierSource<T> implements Comparable<ModifierSource<T>> {
 
-    protected final ModifierSourceType<T> type;
+    protected final ModifierSourceType type;
     protected final Comparator<T> comparator;
     protected final T data;
 
-    public ModifierSource(ModifierSourceType<T> type, Comparator<T> comparator, T data) {
+    public ModifierSource(ModifierSourceType type, Comparator<T> comparator, T data) {
         this.type = type;
         this.comparator = comparator;
         this.data = data;
@@ -195,9 +195,9 @@ public abstract class ModifierSource<T> implements Comparable<ModifierSource<T>>
      * @param y
      */
     public abstract void render(
-            PoseStack poseStack, ItemRenderer itemRenderer, Font font, int x, int y);
+            MatrixStack poseStack, ItemRenderer itemRenderer, FontRenderer font, int x, int y);
 
-    public ModifierSourceType<T> getType() {
+    public ModifierSourceType getType() {
         return this.type;
     }
 
@@ -216,7 +216,7 @@ public abstract class ModifierSource<T> implements Comparable<ModifierSource<T>>
         public ItemModifierSource(ItemStack data) {
             super(
                     ModifierSourceType.EQUIPMENT,
-                    Comparator.comparing(LivingEntity::getEquipmentSlotForItem)
+                    Comparator.comparing(MobEntity::getSlotForItemStack)
                             .reversed()
                             .thenComparing(
                                     Comparator.comparing(
@@ -227,32 +227,32 @@ public abstract class ModifierSource<T> implements Comparable<ModifierSource<T>>
 
         @Override
         public void render(
-                PoseStack poseStack, ItemRenderer itemRenderer, Font font, int x, int y) {
-            poseStack.pushPose();
+                MatrixStack poseStack, ItemRenderer itemRenderer, FontRenderer font, int x, int y) {
+            poseStack.push();
             float scale = 0.5F;
             poseStack.scale(scale, scale, 1);
             poseStack.translate(1 + x / scale, 1 + y / scale, 0);
-            itemRenderer.renderGuiItem(this.data, 0, 0);
-            poseStack.popPose();
+            itemRenderer.renderItemIntoGUI(this.data, 0, 0);
+            poseStack.pop();
         }
     }
 
-    public static class EffectModifierSource extends ModifierSource<MobEffectInstance> {
+    public static class EffectModifierSource extends ModifierSource<EffectInstance> {
 
         @SuppressWarnings("deprecation")
-        public EffectModifierSource(MobEffectInstance data) {
+        public EffectModifierSource(EffectInstance data) {
             super(
                     ModifierSourceType.MOB_EFFECT,
                     Comparator.comparing(
-                            MobEffectInstance::getEffect,
-                            Comparators.idComparator(Registry.MOB_EFFECT)),
+                            EffectInstance::getPotion, Comparators.idComparator(Registry.EFFECTS)),
                     data);
         }
 
         @Override
         public void render(
-                PoseStack poseStack, ItemRenderer itemRenderer, Font font, int x, int y) {
-            MobEffectTextureManager texMgr = Minecraft.getInstance().getMobEffectTextures();
+                MatrixStack poseStack, ItemRenderer itemRenderer, FontRenderer font, int x, int y) {
+            PotionSpriteUploader texMgr = Minecraft.getInstance().getPotionSpriteUploader();
+
             // We don't have an EffectRenderingInventoryScreen, so we'll just hope the texture is
             // good enough.
             // var renderer =
@@ -262,14 +262,14 @@ public abstract class ModifierSource<T> implements Comparable<ModifierSource<T>>
             // i += pYOffset;
             // continue;
             // }
-            MobEffect effect = this.data.getEffect();
-            TextureAtlasSprite sprite = texMgr.get(effect);
+            Effect effect = this.data.getPotion();
+            TextureAtlasSprite sprite = texMgr.getSprite(effect);
             float scale = 0.5F;
-            poseStack.pushPose();
+            poseStack.push();
             poseStack.scale(scale, scale, 1);
             poseStack.translate(x / scale, y / scale, 0);
             blit(poseStack, 0, 0, 0, 18, 18, sprite);
-            poseStack.popPose();
+            poseStack.pop();
         }
     }
 }

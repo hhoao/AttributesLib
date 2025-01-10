@@ -154,8 +154,6 @@
 
 package dev.shadowsoffire.attributeslib.util;
 
-import net.minecraft.world.entity.player.Abilities;
-
 /**
  * Class used to cache and manipulate the value of {@link Abilities#flying} so it doesn't get
  * dropped on respawn or login.

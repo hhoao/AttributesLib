@@ -154,10 +154,8 @@
 
 package dev.shadowsoffire.attributeslib.client;
 
-import static net.minecraft.client.gui.GuiComponent.blit;
-
+import com.mojang.blaze3d.matrix.MatrixStack;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.PoseStack;
 import dev.shadowsoffire.attributeslib.ALConfig;
 import dev.shadowsoffire.attributeslib.AttributesLib;
 import dev.shadowsoffire.attributeslib.api.ALObjects;
@@ -172,38 +170,36 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import javax.annotation.Nullable;
-import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.components.ImageButton;
-import net.minecraft.client.gui.components.events.GuiEventListener;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.gui.screens.inventory.InventoryScreen;
-import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
-import net.minecraft.client.renderer.GameRenderer;
-import net.minecraft.client.renderer.MultiBufferSource;
-import net.minecraft.client.resources.language.I18n;
-import net.minecraft.core.Registry;
-import net.minecraft.locale.Language;
-import net.minecraft.network.chat.Component;
-import net.minecraft.network.chat.FormattedText;
-import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.network.chat.Style;
-import net.minecraft.network.chat.TextComponent;
-import net.minecraft.network.chat.TranslatableComponent;
-import net.minecraft.resources.ResourceLocation;
-import net.minecraft.util.FormattedCharSequence;
-import net.minecraft.util.Mth;
-import net.minecraft.world.entity.ai.attributes.Attribute;
-import net.minecraft.world.entity.ai.attributes.AttributeInstance;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier;
-import net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation;
-import net.minecraft.world.entity.ai.attributes.RangedAttribute;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.client.gui.FontRenderer;
+import net.minecraft.client.gui.IGuiEventListener;
+import net.minecraft.client.gui.screen.inventory.InventoryScreen;
+import net.minecraft.client.gui.widget.Widget;
+import net.minecraft.client.gui.widget.button.ImageButton;
+import net.minecraft.client.renderer.IRenderTypeBuffer;
+import net.minecraft.client.renderer.ItemRenderer;
+import net.minecraft.client.resources.I18n;
+import net.minecraft.client.util.ITooltipFlag;
+import net.minecraft.entity.ai.attributes.Attribute;
+import net.minecraft.entity.ai.attributes.AttributeModifier;
+import net.minecraft.entity.ai.attributes.ModifiableAttributeInstance;
+import net.minecraft.entity.ai.attributes.RangedAttribute;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.IReorderingProcessor;
+import net.minecraft.util.ResourceLocation;
+import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.registry.Registry;
+import net.minecraft.util.text.IFormattableTextComponent;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.ITextProperties;
+import net.minecraft.util.text.StringTextComponent;
+import net.minecraft.util.text.Style;
+import net.minecraft.util.text.TextFormatting;
+import net.minecraft.util.text.TranslationTextComponent;
 import net.minecraftforge.registries.ForgeRegistries;
 
-public class AttributesGui extends Screen {
+public class AttributesGui extends Widget {
 
     public static final ResourceLocation TEXTURES =
             AttributesLib.loc("textures/gui/attributes_gui.png");
@@ -223,30 +219,38 @@ public class AttributesGui extends Screen {
     protected static boolean swappedFromCurios = false;
 
     protected final InventoryScreen parent;
-    protected final Player player;
+    protected final PlayerEntity player;
     protected final ImageButton toggleBtn;
     protected final ImageButton recipeBookButton;
     protected final HideUnchangedButton hideUnchangedBtn;
-    private final MultiBufferSource.BufferSource bufferSource;
+    private final IRenderTypeBuffer.Impl bufferSource;
+    private final FontRenderer font;
+    private final ItemRenderer itemRenderer;
 
     protected int leftPos, topPos;
     protected boolean scrolling;
     protected int startIndex;
-    protected List<AttributeInstance> data = new ArrayList<>();
-    @Nullable protected AttributeInstance selected = null;
+    protected List<ModifiableAttributeInstance> data = new ArrayList<>();
+    @Nullable protected ModifiableAttributeInstance selected = null;
     protected boolean open = false;
     protected long lastRenderTick = -1;
 
     public AttributesGui(InventoryScreen parent) {
-        super(parent.getTitle());
+        super(
+                parent.getGuiLeft() - WIDTH,
+                parent.getGuiTop(),
+                WIDTH,
+                parent.height,
+                StringTextComponent.EMPTY);
+        //        super(parent.getTitle());
         this.parent = parent;
-        this.bufferSource = Minecraft.getInstance().renderBuffers().bufferSource();
-        this.font = Minecraft.getInstance().font;
+        this.bufferSource = Minecraft.getInstance().getRenderTypeBuffers().getBufferSource();
+        this.font = Minecraft.getInstance().fontRenderer;
         this.player = Minecraft.getInstance().player;
         this.itemRenderer = Minecraft.getInstance().getItemRenderer();
         this.refreshData();
-        this.width = WIDTH;
-        this.height = parent.height;
+        //        this.width = WIDTH;
+        //        this.height = parent.height;
         this.leftPos = parent.getGuiLeft() - WIDTH;
         this.topPos = parent.getGuiTop();
         this.toggleBtn =
@@ -264,13 +268,17 @@ public class AttributesGui extends Screen {
                         btn -> {
                             this.toggleVisibility();
                         },
-                        new TranslatableComponent("attributeslib.gui.show_attributes")) {
+                        new StringTextComponent("attributeslib.gui.show_attributes")) {
                     @Override
                     public void setFocused(boolean pFocused) {}
                 };
-        if (this.parent.children().size() > 1) {
-            GuiEventListener btn = this.parent.children().get(0);
-            this.recipeBookButton = btn instanceof ImageButton imgBtn ? imgBtn : null;
+        if (this.parent.children.size() > 1) {
+            IGuiEventListener btn = this.parent.children.get(1);
+            if (btn instanceof ImageButton) {
+                this.recipeBookButton = (ImageButton) btn;
+            } else {
+                this.recipeBookButton = null;
+            }
         } else this.recipeBookButton = null;
         this.hideUnchangedBtn = new HideUnchangedButton(0, 0);
     }
@@ -294,31 +302,34 @@ public class AttributesGui extends Screen {
 
     public void toggleVisibility() {
         this.open = !this.open;
-        if (this.open && this.parent.getRecipeBookComponent().isVisible()) {
-            this.parent.getRecipeBookComponent().toggleVisibility();
+        if (this.open
+                && this.parent.getRecipeGui().field_201522_g != null
+                && this.parent.getRecipeGui().isVisible()) {
+            this.parent.getRecipeGui().toggleVisibility();
         }
         this.hideUnchangedBtn.visible = this.open;
 
         int newLeftPos;
         if (this.open && this.parent.width >= 379) {
-            newLeftPos = 177 + (this.parent.width - this.parent.imageWidth - 200) / 2;
+            newLeftPos = 177 + (this.parent.width - this.parent.getXSize() - 200) / 2;
         } else {
-            newLeftPos = (this.parent.width - this.parent.imageWidth) / 2;
+            newLeftPos = (this.parent.width - this.parent.getYSize()) / 2;
         }
 
-        this.parent.leftPos = newLeftPos;
+        this.parent.guiLeft = newLeftPos;
         this.leftPos = this.parent.getGuiLeft() - WIDTH;
         this.topPos = this.parent.getGuiTop();
 
-        if (this.recipeBookButton != null)
+        if (this.recipeBookButton != null) {
             this.recipeBookButton.setPosition(
                     this.parent.getGuiLeft() + 104, this.parent.height / 2 - 22);
+        }
         this.hideUnchangedBtn.setPosition(this.leftPos + 7, this.topPos + 151);
     }
 
-    protected int compareAttrs(AttributeInstance a1, AttributeInstance a2) {
-        String name = I18n.get(a1.getAttribute().getDescriptionId());
-        String name2 = I18n.get(a2.getAttribute().getDescriptionId());
+    protected int compareAttrs(ModifiableAttributeInstance a1, ModifiableAttributeInstance a2) {
+        String name = I18n.format(a1.getAttribute().getAttributeName());
+        String name2 = I18n.format(a2.getAttribute().getAttributeName());
         return name.compareTo(name2);
     }
 
@@ -329,18 +340,16 @@ public class AttributesGui extends Screen {
     }
 
     @Override
-    public void render(PoseStack poseStack, int mouseX, int mouseY, float partialTicks) {
+    public void render(MatrixStack poseStack, int mouseX, int mouseY, float partialTicks) {
         this.toggleBtn.x = this.parent.getGuiLeft() + 63;
         this.toggleBtn.y = this.parent.getGuiTop() + 10;
-        if (this.parent.getRecipeBookComponent().isVisible()) this.open = false;
+        if (this.parent.getRecipeGui().isVisible()) this.open = false;
         wasOpen = this.open;
         if (!this.open) return;
 
         this.refreshData();
 
-        RenderSystem.setShader(GameRenderer::getPositionTexShader);
-        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-        RenderSystem.setShaderTexture(0, TEXTURES);
+        Minecraft.getInstance().getTextureManager().bindTexture(TEXTURES);
         int left = this.leftPos;
         int top = this.topPos;
         blit(poseStack, left, top, 0, 0, WIDTH, 166, IMAGE_HEIGHT, IMAGE_HEIGHT);
@@ -367,23 +376,23 @@ public class AttributesGui extends Screen {
             idx++;
         }
         this.renderTooltip(poseStack, mouseX, mouseY);
-        font.draw(
+        font.func_243248_b(
                 poseStack,
-                new TranslatableComponent("attributeslib.gui.attributes"),
+                new TranslationTextComponent("attributeslib.gui.attributes"),
                 this.leftPos + 8,
                 this.topPos + 5,
                 0x404040);
-        font.draw(
+        font.func_243248_b(
                 poseStack,
-                new TextComponent("Hide Unchanged"),
+                new StringTextComponent("Hide Unchanged"),
                 this.leftPos + 20,
                 this.topPos + 152,
                 0x404040);
     }
 
     @SuppressWarnings("deprecation")
-    protected void renderTooltip(PoseStack poseStack, int mouseX, int mouseY) {
-        AttributeInstance inst = this.getHoveredSlot(mouseX, mouseY);
+    protected void renderTooltip(MatrixStack poseStack, int mouseX, int mouseY) {
+        ModifiableAttributeInstance inst = this.getHoveredSlot(mouseX, mouseY);
         if (inst != null) {
 
             boolean isDynamic =
@@ -393,212 +402,223 @@ public class AttributesGui extends Screen {
 
             Attribute attr = inst.getAttribute();
             IFormattableAttribute fAttr = (IFormattableAttribute) attr;
-            List<Component> list = new ArrayList<>();
-            MutableComponent name =
-                    new TranslatableComponent(attr.getDescriptionId())
-                            .withStyle(
+            List<ITextComponent> list = new ArrayList<>();
+            IFormattableTextComponent name =
+                    new TranslationTextComponent(attr.getAttributeName())
+                            .mergeStyle(
                                     Style.EMPTY
-                                            .withColor(ChatFormatting.GOLD)
-                                            .withUnderlined(true));
+                                            .createStyleFromFormattings(TextFormatting.GOLD)
+                                            .setUnderlined(true));
 
             if (isDynamic) {
                 name.append(
-                        new TextComponent((" (dynamic)"))
-                                .withStyle(
+                        new StringTextComponent((" (dynamic)"))
+                                .mergeStyle(
                                         Style.EMPTY
-                                                .withColor(ChatFormatting.DARK_GRAY)
-                                                .withUnderlined(false)));
+                                                .applyFormatting(TextFormatting.DARK_GRAY)
+                                                .setUnderlined(false)));
             }
 
             if (AttributesLib.getTooltipFlag().isAdvanced()) {
 
-                Style style = Style.EMPTY.withColor(ChatFormatting.GRAY).withUnderlined(false);
+                Style style = Style.EMPTY.applyFormatting(TextFormatting.GRAY).setUnderlined(false);
                 name.append(
-                        new TextComponent(" [" + ForgeRegistries.ATTRIBUTES.getKey(attr) + "]")
-                                .withStyle(style));
+                        new StringTextComponent(
+                                        " [" + ForgeRegistries.ATTRIBUTES.getKey(attr) + "]")
+                                .mergeStyle(style));
             }
 
             list.add(name);
 
-            String key = attr.getDescriptionId() + ".desc";
+            String key = attr.getAttributeName() + ".desc";
 
-            if (I18n.exists(key)) {
-                Component txt =
-                        new TranslatableComponent(key)
-                                .withStyle(ChatFormatting.YELLOW, ChatFormatting.ITALIC);
+            if (I18n.hasKey(key)) {
+                IFormattableTextComponent txt =
+                        new TranslationTextComponent(key)
+                                .mergeStyle(TextFormatting.YELLOW, TextFormatting.ITALIC);
                 list.add(txt);
             } else if (AttributesLib.getTooltipFlag().isAdvanced()) {
-                Component txt =
-                        new TextComponent(key)
-                                .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC);
+                IFormattableTextComponent txt =
+                        new StringTextComponent(key)
+                                .mergeStyle(TextFormatting.GRAY, TextFormatting.ITALIC);
                 list.add(txt);
             }
 
-            ChatFormatting color = ChatFormatting.GRAY;
+            TextFormatting color = TextFormatting.GRAY;
             if (attr instanceof RangedAttribute) {
                 if (inst.getValue() > inst.getBaseValue()) {
-                    color = ChatFormatting.YELLOW;
+                    color = TextFormatting.YELLOW;
                 } else if (inst.getValue() < inst.getBaseValue()) {
-                    color = ChatFormatting.RED;
+                    color = TextFormatting.RED;
                 }
             }
 
-            Component valueComp =
+            ITextComponent valueComp =
                     fAttr.toValueComponent(null, inst.getValue(), AttributesLib.getTooltipFlag())
-                            .withStyle(color);
-            Component baseComp =
+                            .mergeStyle(color);
+            ITextComponent baseComp =
                     fAttr.toValueComponent(
                                     null, inst.getBaseValue(), AttributesLib.getTooltipFlag())
-                            .withStyle(ChatFormatting.GRAY);
+                            .mergeStyle(TextFormatting.GRAY);
 
             if (!isDynamic) {
-                list.add(new TextComponent(""));
+                list.add(StringTextComponent.EMPTY);
                 list.add(
-                        new TranslatableComponent("attributeslib.gui.current", valueComp)
-                                .withStyle(ChatFormatting.GRAY));
+                        new TranslationTextComponent("attributeslib.gui.current", valueComp)
+                                .mergeStyle(TextFormatting.GRAY));
 
-                Component base =
-                        new TranslatableComponent("attributeslib.gui.base", baseComp)
-                                .withStyle(ChatFormatting.GRAY);
+                IFormattableTextComponent base =
+                        new TranslationTextComponent("attributeslib.gui.base", baseComp)
+                                .mergeStyle(TextFormatting.GRAY);
 
-                if (attr instanceof RangedAttribute ra) {
-                    Component min =
+                if (attr instanceof RangedAttribute) {
+                    RangedAttribute ra = (RangedAttribute) attr;
+                    ITextComponent min =
                             fAttr.toValueComponent(
-                                    null, ra.getMinValue(), AttributesLib.getTooltipFlag());
-                    min = new TranslatableComponent("attributeslib.gui.min", min);
-                    Component max =
+                                    null, ra.minimumValue, AttributesLib.getTooltipFlag());
+                    min = new TranslationTextComponent("attributeslib.gui.min", min);
+                    ITextComponent max =
                             fAttr.toValueComponent(
-                                    null, ra.getMaxValue(), AttributesLib.getTooltipFlag());
-                    max = new TranslatableComponent("attributeslib.gui.max", max);
+                                    null, ra.maximumValue, AttributesLib.getTooltipFlag());
+                    max = new TranslationTextComponent("attributeslib.gui.max", max);
                     list.add(
-                            new TranslatableComponent("%s \u2507 %s \u2507 %s", base, min, max)
-                                    .withStyle(ChatFormatting.GRAY));
+                            new TranslationTextComponent("%s ┇ %s ┇ %s", base, min, max)
+                                    .mergeStyle(TextFormatting.GRAY));
                 } else {
                     list.add(base);
                 }
             }
 
-            List<ClientTooltipComponent> finalTooltip = new ArrayList<>(list.size());
-            for (Component txt : list) {
+            List<ITextProperties> finalTooltip = new ArrayList<>(list.size());
+            for (ITextComponent txt : list) {
                 this.addComp(txt, finalTooltip);
             }
 
-            if (inst.getModifiers().stream().anyMatch(modif -> modif.getAmount() != 0)) {
-                this.addComp(new TextComponent(""), finalTooltip);
+            if (inst.getModifierListCopy().stream().anyMatch(modif -> modif.getAmount() != 0)) {
+                this.addComp(StringTextComponent.EMPTY, finalTooltip);
                 this.addComp(
-                        new TranslatableComponent("attributeslib.gui.modifiers")
-                                .withStyle(ChatFormatting.GOLD),
+                        new TranslationTextComponent("attributeslib.gui.modifiers")
+                                .mergeStyle(TextFormatting.GOLD),
                         finalTooltip);
 
                 Map<UUID, ModifierSource<?>> modifiersToSources = new HashMap<>();
 
-                for (ModifierSourceType<?> type : ModifierSourceType.getTypes()) {
+                for (ModifierSourceType type : ModifierSourceType.getTypes()) {
                     type.extract(
                             this.player,
-                            (modif, source) -> modifiersToSources.put(modif.getId(), source));
+                            (modif, source) -> modifiersToSources.put(modif.getID(), source));
                 }
 
-                MutableComponent[] opValues = new MutableComponent[3];
+                ITextComponent[] opValues = new ITextComponent[3];
                 double[] numericValues = new double[3];
 
-                for (Operation op : Operation.values()) {
-                    List<AttributeModifier> modifiers = new ArrayList<>(inst.getModifiers(op));
+                for (AttributeModifier.Operation op : AttributeModifier.Operation.values()) {
+                    List<AttributeModifier> modifiers = new ArrayList<>(inst.getModifierListCopy());
                     double opValue =
                             modifiers.stream()
                                     .mapToDouble(AttributeModifier::getAmount)
                                     .reduce(
-                                            op == Operation.MULTIPLY_TOTAL ? 1 : 0,
+                                            op == AttributeModifier.Operation.MULTIPLY_TOTAL
+                                                    ? 1
+                                                    : 0,
                                             (res, elem) ->
-                                                    op == Operation.MULTIPLY_TOTAL
+                                                    op == AttributeModifier.Operation.MULTIPLY_TOTAL
                                                             ? res * (1 + elem)
                                                             : res + elem);
 
                     modifiers.sort(ModifierSourceType.compareBySource(modifiersToSources));
                     for (AttributeModifier modif : modifiers) {
                         if (modif.getAmount() != 0) {
-                            Component comp =
+                            IFormattableTextComponent comp =
                                     fAttr.toComponent(modif, AttributesLib.getTooltipFlag());
-                            var src = modifiersToSources.get(modif.getId());
+                            ModifierSource src = modifiersToSources.get(modif.getID());
                             finalTooltip.add(
                                     new AttributeModifierComponent(
                                             src, comp, this.font, this.leftPos - 16));
                         }
                     }
-                    color = ChatFormatting.GRAY;
-                    double threshold = op == Operation.MULTIPLY_TOTAL ? 1.0005 : 0.0005;
+                    color = TextFormatting.GRAY;
+                    double threshold =
+                            op == AttributeModifier.Operation.MULTIPLY_TOTAL ? 1.0005 : 0.0005;
 
                     if (opValue > threshold) {
-                        color = ChatFormatting.YELLOW;
+                        color = TextFormatting.YELLOW;
                     } else if (opValue < -threshold) {
-                        color = ChatFormatting.RED;
+                        color = TextFormatting.RED;
                     }
-                    Component valueComp2 =
+                    ITextComponent valueComp2 =
                             fAttr.toValueComponent(op, opValue, AttributesLib.getTooltipFlag())
-                                    .withStyle(color);
-                    MutableComponent comp =
-                            new TranslatableComponent(
+                                    .deepCopy()
+                                    .mergeStyle(color);
+                    ITextComponent comp =
+                            new TranslationTextComponent(
                                             "attributeslib.gui."
                                                     + op.name().toLowerCase(Locale.ROOT),
                                             valueComp2)
-                                    .withStyle(ChatFormatting.GRAY, ChatFormatting.ITALIC);
+                                    .mergeStyle(TextFormatting.GRAY, TextFormatting.ITALIC);
                     opValues[op.ordinal()] = comp;
                     numericValues[op.ordinal()] = opValue;
                 }
 
-                this.addComp(new TextComponent(""), finalTooltip);
+                this.addComp(StringTextComponent.EMPTY, finalTooltip);
                 this.addComp(
-                        new TextComponent("Modifier Formula").withStyle(ChatFormatting.GOLD),
+                        new StringTextComponent("Modifier Formula").mergeStyle(TextFormatting.GOLD),
                         finalTooltip);
 
-                Component base =
+                ITextComponent base =
                         isDynamic
-                                ? new TranslatableComponent("attributeslib.gui.formula.base")
+                                ? new TranslationTextComponent("attributeslib.gui.formula.base")
                                 : baseComp;
-                Component value =
+                ITextComponent value =
                         isDynamic
-                                ? new TranslatableComponent("attributeslib.gui.formula.value")
+                                ? new TranslationTextComponent("attributeslib.gui.formula.value")
                                 : valueComp;
 
-                Component formula = buildFormula(base, value, numericValues);
+                ITextComponent formula = buildFormula(base, value, numericValues);
                 this.addComp(formula, finalTooltip);
             } else if (isDynamic) {
-                this.addComp(new TextComponent(""), finalTooltip);
+                this.addComp(StringTextComponent.EMPTY, finalTooltip);
                 this.addComp(
-                        new TranslatableComponent("attributeslib.gui.no_modifiers")
-                                .withStyle(ChatFormatting.GOLD),
+                        new TranslationTextComponent("attributeslib.gui.no_modifiers")
+                                .mergeStyle(TextFormatting.GOLD),
                         finalTooltip);
             }
 
-            renderTooltipInternal(
+            parent.renderWrappedToolTip(
                     poseStack,
                     finalTooltip,
                     this.leftPos
                             - 16
                             - finalTooltip.stream()
-                                    .map(c -> c.getWidth(this.font))
+                                    .map(c -> font.getStringPropertyWidth(c))
                                     .max(Integer::compare)
                                     .get(),
-                    mouseY);
+                    mouseY,
+                    font);
         }
     }
 
-    private void addComp(Component comp, List<ClientTooltipComponent> finalTooltip) {
-        if (Objects.equals(comp, new TextComponent(""))) {
-            finalTooltip.add(ClientTooltipComponent.create(comp.getVisualOrderText()));
+    private void addComp(ITextComponent comp, List<ITextProperties> finalTooltip) {
+        if (Objects.equals(comp, StringTextComponent.EMPTY)) {
+            finalTooltip.add(comp);
         } else {
-            for (FormattedText fTxt :
-                    this.font.getSplitter().splitLines(comp, this.leftPos - 16, comp.getStyle())) {
-                finalTooltip.add(
-                        ClientTooltipComponent.create(Language.getInstance().getVisualOrder(fTxt)));
-            }
+            finalTooltip.addAll(
+                    this.font
+                            .getCharacterManager()
+                            .func_238362_b_(comp, this.leftPos - 16, comp.getStyle()));
         }
     }
 
     @SuppressWarnings("deprecation")
     private void renderEntry(
-            PoseStack poseStack, AttributeInstance inst, int x, int y, int mouseX, int mouseY) {
+            MatrixStack poseStack,
+            ModifiableAttributeInstance inst,
+            int x,
+            int y,
+            int mouseX,
+            int mouseY) {
         boolean hover = this.getHoveredSlot(mouseX, mouseY) == inst;
-        RenderSystem.setShaderTexture(0, TEXTURES);
+        Minecraft.getInstance().getTextureManager().bindTexture(TEXTURES);
         blit(
                 poseStack,
                 x,
@@ -610,47 +630,48 @@ public class AttributesGui extends Screen {
                 IMAGE_WIDTH,
                 IMAGE_HEIGHT);
 
-        Component txt = new TranslatableComponent(inst.getAttribute().getDescriptionId());
+        ITextComponent txt = new TranslationTextComponent(inst.getAttribute().getAttributeName());
         int splitWidth = 60;
-        List<FormattedCharSequence> lines = this.font.split(txt, splitWidth);
+        List<IReorderingProcessor> lines = this.font.trimStringToWidth(txt, splitWidth);
         // We can only actually display two lines here, but we need to forcibly create two lines and
         // then scale down.
         while (lines.size() > 2) {
             splitWidth += 10;
-            lines = this.font.split(txt, splitWidth);
+            lines = this.font.trimStringToWidth(txt, splitWidth);
         }
 
-        poseStack.pushPose();
+        poseStack.push();
         float scale = 1;
-        int maxWidth = lines.stream().map(this.font::width).max(Integer::compareTo).get();
+        int maxWidth = lines.stream().map(this.font::func_243245_a).max(Integer::compareTo).get();
         if (maxWidth > 66) {
             scale = 66F / maxWidth;
             poseStack.scale(scale, scale, 1);
         }
 
         for (int i = 0; i < lines.size(); i++) {
-            FormattedCharSequence line = lines.get(i);
-            float width = this.font.width(line) * scale;
+            IReorderingProcessor line = lines.get(i);
+            float width = this.font.func_243245_a(line) * scale;
             float lineX = (x + 1 + (68 - width) / 2) / scale;
             float lineY = (y + (lines.size() == 1 ? 7 : 2) + i * 10) / scale;
-            font.draw(poseStack, line, lineX, lineY, 0x404040);
+            Minecraft.getInstance().getTextureManager().bindTexture(TEXTURES);
+            font.func_238422_b_(poseStack, line, lineX, lineY, 0x404040);
         }
-        poseStack.popPose();
-        poseStack.pushPose();
+        poseStack.push();
+        poseStack.pop();
 
-        var attr = (IFormattableAttribute) inst.getAttribute();
-        MutableComponent value =
-                attr.toValueComponent(null, inst.getValue(), TooltipFlag.Default.NORMAL);
+        IFormattableAttribute attr = (IFormattableAttribute) inst.getAttribute();
+        ITextComponent value =
+                attr.toValueComponent(null, inst.getValue(), ITooltipFlag.TooltipFlags.NORMAL);
 
         if (Registry.ATTRIBUTE
                 .getKey(inst.getAttribute())
                 .equals(ALObjects.Tags.DYNAMIC_BASE_ATTTE)) {
-            value = new TextComponent("\uFFFD");
+            value = new StringTextComponent("\uFFFD");
         }
 
         scale = 1;
-        if (this.font.width(value) > 27) {
-            scale = 27F / this.font.width(value);
+        if (this.font.getStringPropertyWidth(value) > 27) {
+            scale = 27F / this.font.getStringPropertyWidth(value);
             poseStack.scale(scale, scale, 1);
         }
 
@@ -664,14 +685,18 @@ public class AttributesGui extends Screen {
         } else if (attr instanceof BooleanAttribute && inst.getValue() > 0) {
             color = 0x55DD55;
         }
-        font.drawShadow(
+        Minecraft.getInstance().getTextureManager().bindTexture(TEXTURES);
+        // drawShadow
+        font.func_243248_b(
                 poseStack,
                 value,
-                (int) ((x + 72 + (27 - this.font.width(value) * scale) / 2) / scale),
+                (int)
+                        ((x + 72 + (27 - this.font.getStringPropertyWidth(value) * scale) / 2)
+                                / scale),
                 (int) ((y + 7) / scale),
                 color);
 
-        poseStack.popPose();
+        poseStack.pop();
     }
 
     @Override
@@ -685,7 +710,7 @@ public class AttributesGui extends Screen {
             int i = this.topPos + 15;
             int j = i + 138;
             scrollOffset = ((float) pMouseY - i - 7.5F) / (j - i - 15.0F);
-            scrollOffset = Mth.clamp(scrollOffset, 0.0F, 1.0F);
+            scrollOffset = MathHelper.clamp(scrollOffset, 0.0F, 1.0F);
             this.startIndex = (int) (scrollOffset * this.getOffScreenRows() + 0.5D);
             return true;
         }
@@ -700,7 +725,7 @@ public class AttributesGui extends Screen {
             int i = this.topPos + 15;
             int j = i + 138;
             scrollOffset = ((float) pMouseY - i - 7.5F) / (j - i - 15.0F);
-            scrollOffset = Mth.clamp(scrollOffset, 0.0F, 1.0F);
+            scrollOffset = MathHelper.clamp(scrollOffset, 0.0F, 1.0F);
             this.startIndex = (int) (scrollOffset * this.getOffScreenRows() + 0.5D);
             return true;
         } else {
@@ -714,7 +739,7 @@ public class AttributesGui extends Screen {
         if (this.isScrollBarActive()) {
             int i = this.getOffScreenRows();
             scrollOffset = (float) (scrollOffset - pDelta / i);
-            scrollOffset = Mth.clamp(scrollOffset, 0.0F, 1.0F);
+            scrollOffset = MathHelper.clamp(scrollOffset, 0.0F, 1.0F);
             this.startIndex = (int) (scrollOffset * i + 0.5D);
             return true;
         }
@@ -729,7 +754,8 @@ public class AttributesGui extends Screen {
         return Math.max(0, this.data.size() - MAX_ENTRIES);
     }
 
-    @Nullable public AttributeInstance getHoveredSlot(int mouseX, int mouseY) {
+    @Nullable
+    public ModifiableAttributeInstance getHoveredSlot(int mouseX, int mouseY) {
         for (int i = 0; i < MAX_ENTRIES; i++) {
             if (this.startIndex + i < this.data.size()) {
                 if (this.isHovering(8, 14 + ENTRY_HEIGHT * i, 100, ENTRY_HEIGHT, mouseX, mouseY))
@@ -751,7 +777,7 @@ public class AttributesGui extends Screen {
                 && pMouseY < pY + pHeight + 1;
     }
 
-    private static DecimalFormat f = ItemStack.ATTRIBUTE_MODIFIER_FORMAT;
+    private static DecimalFormat f = ItemStack.DECIMALFORMAT;
 
     public static String format(int n) {
         int log = (int) StrictMath.log10(n);
@@ -769,7 +795,8 @@ public class AttributesGui extends Screen {
      * @param numericValues The modifier totals, in operation ordinal order (add, mulBase, mulTotal)
      * @return A component holding the formula with colors already applied.
      */
-    public static Component buildFormula(Component base, Component value, double[] numericValues) {
+    public static IFormattableTextComponent buildFormula(
+            ITextComponent base, ITextComponent value, double[] numericValues) {
         double add = numericValues[0];
         double mulBase = numericValues[1];
         double mulTotal = numericValues[2];
@@ -790,13 +817,13 @@ public class AttributesGui extends Screen {
         String formula = "%2$s";
 
         if (add != 0) {
-            ChatFormatting color = isAddNeg ? ChatFormatting.RED : ChatFormatting.YELLOW;
+            TextFormatting color = isAddNeg ? TextFormatting.RED : TextFormatting.YELLOW;
             formula = formula + " " + colored(addSym + " " + addStr, color);
         }
 
         if (mulBase != 0) {
-            String withParens = add == 0 ? formula : "(%s)".formatted(formula);
-            ChatFormatting color = isMulNeg ? ChatFormatting.RED : ChatFormatting.YELLOW;
+            String withParens = add == 0 ? formula : String.format("(%s)", formula);
+            TextFormatting color = isMulNeg ? TextFormatting.RED : TextFormatting.YELLOW;
             formula =
                     withParens
                             + " "
@@ -805,26 +832,21 @@ public class AttributesGui extends Screen {
         }
 
         if (mulTotal != 1) {
-            String withParens = add == 0 && mulBase == 0 ? formula : "(%s)".formatted(formula);
-            ChatFormatting color = mulTotal < 1 ? ChatFormatting.RED : ChatFormatting.YELLOW;
+            String withParens = add == 0 && mulBase == 0 ? formula : String.format("(%s)", formula);
+            TextFormatting color = mulTotal < 1 ? TextFormatting.RED : TextFormatting.YELLOW;
             formula = colored(mulTotalStr + " * ", color) + withParens;
         }
 
-        return new TranslatableComponent("%1$s = " + formula, value, base)
-                .withStyle(ChatFormatting.GRAY);
+        return new TranslationTextComponent("%1$s = " + formula, value, base)
+                .mergeStyle(TextFormatting.GRAY);
     }
 
     /**
      * Colors a string using legacy formatting codes. Terminates the string with {@link
-     * ChatFormatting#RESET}.
+     * TextFormatting#RESET}.
      */
-    private static String colored(String str, ChatFormatting color) {
-        return ""
-                + ChatFormatting.PREFIX_CODE
-                + color.getChar()
-                + str
-                + ChatFormatting.PREFIX_CODE
-                + ChatFormatting.RESET.getChar();
+    private static String colored(String str, TextFormatting color) {
+        return "" + '§' + color.formattingCode + str + '§' + TextFormatting.RESET.formattingCode;
     }
 
     public class HideUnchangedButton extends ImageButton {
@@ -841,7 +863,7 @@ public class AttributesGui extends Screen {
                     IMAGE_WIDTH,
                     IMAGE_HEIGHT,
                     null,
-                    new TextComponent("Hide Unchanged Attributes"));
+                    new StringTextComponent("Hide Unchanged Attributes"));
             this.visible = false;
         }
 
@@ -851,7 +873,7 @@ public class AttributesGui extends Screen {
         }
 
         @Override
-        public void renderButton(PoseStack stack, int pMouseX, int pMouseY, float pPartialTick) {
+        public void renderButton(MatrixStack stack, int pMouseX, int pMouseY, float pPartialTick) {
             int u = 131, v = 20;
             int vOffset = hideUnchanged ? 0 : 10;
             if (this.isHovered) {
@@ -859,10 +881,10 @@ public class AttributesGui extends Screen {
             }
 
             RenderSystem.enableDepthTest();
-            stack.pushPose();
+            stack.push();
             stack.translate(0, 0, 100);
             blit(stack, this.x, this.y, u, v + vOffset, 10, 10, IMAGE_WIDTH, IMAGE_HEIGHT);
-            stack.popPose();
+            stack.pop();
         }
     }
 }

@@ -158,9 +158,9 @@ import dev.shadowsoffire.attributeslib.api.ALObjects.Attributes;
 import dev.shadowsoffire.attributeslib.impl.AttributeEvents;
 import dev.shadowsoffire.attributeslib.util.IEntityOwned;
 import dev.shadowsoffire.attributeslib.util.IFlying;
-import net.minecraft.world.entity.player.Abilities;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.level.GameType;
+import net.minecraft.entity.player.PlayerAbilities;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.world.GameType;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -173,9 +173,9 @@ public class GameTypeMixin {
 
     @Inject(
             at = @At("HEAD"),
-            method = "updatePlayerAbilities(Lnet/minecraft/world/entity/player/Abilities;)V")
-    public void apoth_recordOldFlyingAttribs(Abilities abilities, CallbackInfo ci) {
-        this.apoth_flying = abilities.flying;
+            method = "configurePlayerCapabilities(Lnet/minecraft/entity/player/PlayerAbilities;)V")
+    public void apoth_recordOldFlyingAttribs(PlayerAbilities abilities, CallbackInfo ci) {
+        this.apoth_flying = abilities.isFlying;
     }
 
     /**
@@ -185,13 +185,13 @@ public class GameTypeMixin {
      */
     @Inject(
             at = @At("TAIL"),
-            method = "updatePlayerAbilities(Lnet/minecraft/world/entity/player/Abilities;)V")
-    public void apoth_flightAttribModifier(Abilities abilities, CallbackInfo ci) {
-        Player player = (Player) ((IEntityOwned) abilities).getOwner();
+            method = "configurePlayerCapabilities(Lnet/minecraft/entity/player/PlayerAbilities;)V")
+    public void apoth_flightAttribModifier(PlayerAbilities abilities, CallbackInfo ci) {
+        PlayerEntity player = (PlayerEntity) ((IEntityOwned) abilities).getOwner();
         AttributeEvents.applyCreativeFlightModifier(player, (GameType) (Object) this);
         if (player.getAttributeValue(Attributes.CREATIVE_FLIGHT.get()) > 0) {
-            abilities.mayfly = true;
-            abilities.flying = ((IFlying) player).getAndDestroyFlyingCache() || this.apoth_flying;
+            abilities.allowFlying = true;
+            abilities.isFlying = ((IFlying) player).getAndDestroyFlyingCache() || this.apoth_flying;
         }
     }
 }
