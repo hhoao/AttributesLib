@@ -546,7 +546,7 @@ public class AttributesLibClient {
                                 attr, amt, entityBase, isMerged, flag);
                 tooltip.accept(
                         padded(" ", text)
-                                .copyRaw()
+                                .deepCopy()
                                 .mergeStyle(
                                         isMerged
                                                 ? TextFormatting.GOLD
@@ -557,7 +557,7 @@ public class AttributesLibClient {
                             IFormattableAttribute.toBaseComponent(
                                     attr, rawBase, entityBase, false, flag);
                     tooltip.accept(
-                            list().append(text.copyRaw().mergeStyle(TextFormatting.DARK_GREEN)));
+                            list().append(text.deepCopy().mergeStyle(TextFormatting.DARK_GREEN)));
                     for (AttributeModifier modifier : baseModif.children) {
                         tooltip.accept(
                                 list().append(
@@ -605,7 +605,7 @@ public class AttributesLibClient {
                             ITextComponent comp =
                                     IFormattableAttribute.toComponent(attr, fakeModif, flag);
                             tooltip.accept(
-                                    comp.copyRaw().mergeStyle(comp.getStyle().setColor(color)));
+                                    comp.deepCopy().mergeStyle(comp.getStyle().setColor(color)));
                             if (merged[i] && Screen.hasShiftDown()) {
                                 shiftExpands
                                         .get(AttributeModifier.Operation.byId(i))
@@ -653,9 +653,6 @@ public class AttributesLibClient {
                 double pZSpeed) {
             super(pLevel, pX, pY, pZ, pXSpeed, pYSpeed, pZSpeed);
             setColor(0.3F, 0.8F, 1F);
-            //            this.bCol = 1F;
-            //            this.rCol = 0.3F;
-            //            this.gCol = 0.8F;
         }
     }
 }
