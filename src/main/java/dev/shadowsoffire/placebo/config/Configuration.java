@@ -186,7 +186,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import net.minecraftforge.fml.loading.FMLPaths;
+import net.minecraftforge.fml.common.Loader;
 import org.apache.commons.io.IOUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -239,7 +239,7 @@ public class Configuration {
     }
 
     public Configuration(String modid) {
-        this(new File(FMLPaths.CONFIGDIR.get().toFile(), modid + ".cfg"));
+        this(new File(Loader.instance().getConfigDir(), modid + ".cfg"));
     }
 
     public void setTitle(String title) {
