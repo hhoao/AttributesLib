@@ -6,9 +6,8 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
-import net.minecraft.resources.IResourceManagerReloadListener;
+import net.minecraft.client.resources.IResourceManagerReloadListener;
 import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.ResourceLocationException;
 import repack.evalex.Expression;
 
 public class ALConfig {
@@ -53,7 +52,7 @@ public class ALConfig {
         for (String name : hidden) {
             try {
                 hiddenAttributes.add(new ResourceLocation(name));
-            } catch (ResourceLocationException ex) {
+            } catch (Exception ex) {
                 AttributesLib.LOGGER.error(
                         "Ignoring invalid \"Hidden Attributes\" config entry " + name, ex);
             }

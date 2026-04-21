@@ -1,19 +1,17 @@
 package dev.shadowsoffire.attributeslib.util;
 
 /**
- * Class used to cache and manipulate the value of {@link Abilities#flying} so it doesn't get
- * dropped on respawn or login.
+ * Caches and manipulates the value of {@code PlayerCapabilities#isFlying} so the flag isn't dropped
+ * on respawn or login.
  */
 public interface IFlying {
 
     /**
-     * If the user was flying the last time {@link Abilities#flying} was read from disk.<br>
-     * Nukes the cached value after retrieving it so that future calls are invalid.
+     * Returns whether the user was flying the last time {@code PlayerCapabilities} was read from
+     * disk, then clears the cached value so future calls return false.
      */
-    public boolean getAndDestroyFlyingCache();
+    boolean getAndDestroyFlyingCache();
 
-    /**
-     * Marks the player as previously flying so that the {@link Abilities#flying} state is restored.
-     */
-    public void markFlying();
+    /** Marks the player as previously flying so the capability state is restored. */
+    void markFlying();
 }

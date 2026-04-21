@@ -1,35 +1,39 @@
 package dev.shadowsoffire.attributeslib.impl;
 
 import dev.shadowsoffire.attributeslib.api.IFormattableAttribute;
+import javax.annotation.Nullable;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.ai.attributes.AttributeModifier;
+import net.minecraft.entity.ai.attributes.IAttribute;
 import net.minecraft.entity.ai.attributes.RangedAttribute;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.text.IFormattableTextComponent;
-import net.minecraft.util.text.TranslationTextComponent;
+import net.minecraft.util.text.ITextComponent;
+import net.minecraft.util.text.TextComponentTranslation;
 
 /**
- * A Percentile Based Attribute is one which always displays modifiers as percentages, even addition
- * ones.<br>
- * This is used for attributes that would not make sense being displayed as flat additions (ex +0.05
- * Life Steal).
+ * A Percentile Based Attribute always displays modifiers as percentages, even addition ones. Used
+ * for attributes where flat additions would be unreadable (e.g. +0.05 Life Steal → shown as 5%).
  */
 public class PercentBasedAttribute extends RangedAttribute implements IFormattableAttribute {
 
     public PercentBasedAttribute(
-            String pDescriptionId, double pDefaultValue, double pMin, double pMax) {
-        super(pDescriptionId, pDefaultValue, pMin, pMax);
+            @Nullable IAttribute parent,
+            String unlocalizedName,
+            double defaultValue,
+            double min,
+            double max) {
+        super(parent, unlocalizedName, defaultValue, min, max);
     }
 
     @Override
-    public IFormattableTextComponent toComponent(AttributeModifier modif, ITooltipFlag flag) {
+    public ITextComponent toComponent(AttributeModifier modif, ITooltipFlag flag) {
         return IFormattableAttribute.super.toComponent(modif, flag);
     }
 
     @Override
-    public IFormattableTextComponent toValueComponent(
+    public ITextComponent toValueComponent(
             AttributeModifier.Operation op, double value, ITooltipFlag flag) {
-        return new TranslationTextComponent(
+        return new TextComponentTranslation(
                 "attributeslib.value.percent", ItemStack.DECIMALFORMAT.format(value * 100));
     }
 }

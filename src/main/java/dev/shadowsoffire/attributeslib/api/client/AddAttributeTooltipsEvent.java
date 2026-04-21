@@ -3,19 +3,17 @@ package dev.shadowsoffire.attributeslib.api.client;
 import java.util.List;
 import java.util.ListIterator;
 import net.minecraft.client.util.ITooltipFlag;
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.text.ITextComponent;
-import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.event.entity.player.PlayerEvent;
+import net.minecraftforge.fml.relauncher.Side;
 
 /**
- * This event is used to add additional attribute tooltip lines without having to manually locate
- * the inject point.
+ * Fired to add extra attribute tooltip lines without having to manually locate the inject point.
  *
- * <p>This event is fired on {@linkplain MinecraftForge#EVENT_BUS the main event bus}.<br>
- * This event is only fired on the {@linkplain Dist#CLIENT physical client}.
+ * <p>Fired on {@link MinecraftForge#EVENT_BUS}. Client only ({@link Side#CLIENT}).
  */
 public class AddAttributeTooltipsEvent extends PlayerEvent {
 
@@ -26,7 +24,7 @@ public class AddAttributeTooltipsEvent extends PlayerEvent {
 
     public AddAttributeTooltipsEvent(
             ItemStack stack,
-            PlayerEntity player,
+            EntityPlayer player,
             List<ITextComponent> tooltip,
             ListIterator<ITextComponent> attributeTooltipIterator,
             ITooltipFlag flag) {
@@ -37,35 +35,25 @@ public class AddAttributeTooltipsEvent extends PlayerEvent {
         this.flag = flag;
     }
 
-    /**
-     * Use to determine if the advanced information on item tooltips is being shown, toggled by
-     * F3+H.
-     */
     public ITooltipFlag getFlags() {
         return this.flag;
     }
 
-    /** The {@link ItemStack} with the tooltip. */
     public ItemStack getStack() {
         return this.stack;
     }
 
-    /** The {@link ItemStack}'s full tooltip. */
     public List<ITextComponent> getTooltip() {
         return this.tooltip;
     }
 
-    /** Returns an iterator pointed at the tail of the attribute tooltips. */
     public ListIterator<ITextComponent> getAttributeTooltipIterator() {
         return this.attributeTooltipIterator;
     }
 
-    /**
-     * This event is fired with a null player during startup when populating search trees for
-     * tooltips.
-     */
+    /** May return null when the event is fired during search-tree bootstrap. */
     @Override
-    public PlayerEntity getEntity() {
-        return super.getPlayer();
+    public EntityPlayer getEntityPlayer() {
+        return super.getEntityPlayer();
     }
 }

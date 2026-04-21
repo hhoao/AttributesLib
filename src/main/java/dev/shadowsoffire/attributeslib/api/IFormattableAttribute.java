@@ -6,282 +6,205 @@ import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.enchantment.EnchantmentHelper;
-import net.minecraft.entity.CreatureAttribute;
-import net.minecraft.entity.ai.attributes.Attribute;
+import net.minecraft.entity.EnumCreatureAttribute;
+import net.minecraft.entity.SharedMonsterAttributes;
 import net.minecraft.entity.ai.attributes.AttributeModifier;
-import net.minecraft.entity.ai.attributes.Attributes;
+import net.minecraft.entity.ai.attributes.IAttribute;
 import net.minecraft.item.ItemStack;
-import net.minecraft.util.text.IFormattableTextComponent;
 import net.minecraft.util.text.ITextComponent;
-import net.minecraft.util.text.StringTextComponent;
-import net.minecraft.util.text.TextComponent;
+import net.minecraft.util.text.Style;
+import net.minecraft.util.text.TextComponentString;
+import net.minecraft.util.text.TextComponentTranslation;
 import net.minecraft.util.text.TextFormatting;
-import net.minecraft.util.text.TranslationTextComponent;
-import net.minecraftforge.common.ForgeMod;
 
 /**
- * A Formattable Attribute is one which elects to have control over its tooltip representation.<br>
- * This interface also serves as the primary means of displaying attribute modifiers.
+ * A Formattable Attribute elects to control its tooltip representation. Also serves as the primary
+ * means of displaying attribute modifiers. In 1.12.2 this is applied onto {@link IAttribute}
+ * instances via a mixin on {@code BaseAttribute}.
  */
 public interface IFormattableAttribute {
 
     /**
-     * Converts the value of an attribute modifier to the value that will be displayed.
-     *
-     * <p>For multiplication modifiers, this method is responsible for converting the value to
-     * percentage form.<br>
-     * The only vanilla attribute which performs value formatting is Knockback Resistance.<br>
-     *
-     * @param op The operation of the modifier. Null if we are just displaying the raw value and not
-     *     a modifier.
-     * @param value The value of the modifier.
-     * @param flag The tooltip flag.
-     * @return The component form of the formatted value.
+     * Converts the value of an attribute modifier to its displayable form. Multiplication operations
+     * are converted to percent form here.
      */
-    default IFormattableTextComponent toValueComponent(
+    default ITextComponent toValueComponent(
             @Nullable AttributeModifier.Operation op, double value, ITooltipFlag flag) {
-        // Knockback Resistance and Swim Speed are percent-based attributes, but we can't registry
-        // replace attributes, so we do this here.
-        // For Knockback Resistance, vanilla hardcodes a multiplier of 10 for addition values to
-        // hide numbers lower than 1,
-        // but percent-based is the real desire.
-        // For Swim Speed, the implementation is percent-based, but no additional tricks are
-        // performed.
-        if (this == Attributes.KNOCKBACK_RESISTANCE || this == ForgeMod.SWIM_SPEED.get()) {
-            return new TranslationTextComponent(
+        IAttribute self = this.ths();
+        // Knockback Resistance uses percent display in vanilla for addition modifiers (hardcoded 10x
+        // multiplier); we bypass that by always displaying as percent here.
+        if (self == SharedMonsterAttributes.KNOCKBACK_RESISTANCE) {
+            return new TextComponentTranslation(
                     "attributeslib.value.percent", ItemStack.DECIMALFORMAT.format(value * 100));
         }
-        // Speed has no metric, so displaying everything as percent works better for the user.
-        // However, Speed also operates in that the default is 0.1, not 1, so we have to
-        //        // special-case it instead of including it above.
-        if (this == Attributes.MOVEMENT_SPEED && isNullOrAddition(op)) {
-            return new TranslationTextComponent(
+        // Movement speed default is 0.1 and has no unit; display as percent when addition-like.
+        if (self == SharedMonsterAttributes.MOVEMENT_SPEED && isNullOrAddition(op)) {
+            return new TextComponentTranslation(
                     "attributeslib.value.percent", ItemStack.DECIMALFORMAT.format(value * 1000));
         }
         String key =
                 isNullOrAddition(op) ? "attributeslib.value.flat" : "attributeslib.value.percent";
-        return new TranslationTextComponent(
+        return new TextComponentTranslation(
                 key, ItemStack.DECIMALFORMAT.format(isNullOrAddition(op) ? value : value * 100));
     }
 
     /**
-     * Converts an attribute modifier into its tooltip representation.
-     *
-     * <p>This method does not handle formatting of "base" modifiers, such as Attack Damage or
-     * Attack Speed.
-     *
-     * <p>
-     *
-     * @param modif The attribute modifier being converted to a component.
-     * @param flag The tooltip flag.
-     * @return The component representation of the passed attribute modifier, with debug info
-     *     appended if enabled.
+     * Converts an attribute modifier into its tooltip representation. Does not handle "base"
+     * modifiers (Attack Damage, Attack Speed). Debug info is appended when advanced tooltips are on.
      */
-    default IFormattableTextComponent toComponent(AttributeModifier modif, ITooltipFlag flag) {
-        Attribute attr = this.ths();
+    default ITextComponent toComponent(AttributeModifier modif, ITooltipFlag flag) {
+        IAttribute attr = this.ths();
         double value = modif.getAmount();
 
-        IFormattableTextComponent comp;
+        TextFormatting color = value > 0.0D ? TextFormatting.BLUE : TextFormatting.RED;
+        String key = value > 0.0D ? "attributeslib.modifier.plus" : "attributeslib.modifier.take";
+        if (value < 0.0D) value *= -1.0D;
 
-        if (value > 0.0D) {
-            comp =
-                    new TranslationTextComponent(
-                                    "attributeslib.modifier.plus",
-                                    this.toValueComponent(modif.getOperation(), value, flag),
-                                    new TranslationTextComponent(attr.getAttributeName()))
-                            .mergeStyle(TextFormatting.BLUE);
-        } else {
-            value *= -1.0D;
-            comp =
-                    new TranslationTextComponent(
-                                    "attributeslib.modifier.take",
-                                    this.toValueComponent(modif.getOperation(), value, flag),
-                                    new TranslationTextComponent(attr.getAttributeName()))
-                            .mergeStyle(TextFormatting.RED);
-        }
+        ITextComponent comp =
+                new TextComponentTranslation(
+                                key,
+                                this.toValueComponent(modif.getOperation(), value, flag),
+                                new TextComponentTranslation(attr.getName()))
+                        .setStyle(new Style().setColor(color));
 
-        return comp.append(this.getDebugInfo(modif, flag));
+        ITextComponent debug = this.getDebugInfo(modif, flag);
+        if (debug != null) comp.appendSibling(debug);
+        return comp;
     }
 
     /**
-     * Computes the additional debug information for a given attribute modifier, if the flag
-     * {@linkplain ITooltipFlag#isAdvanced() is advanced}.
-     *
-     * @param modif The attribute modifier being converted to a component.
-     * @param flag The tooltip flag.
-     * @return The debug component, or {@link CommonComponents#CommonComponents()} CommonComponents}
-     *     if disabled.
-     * @apiNote This information is automatically appended to {@link #toComponent(AttributeModifier,
-     *     ITooltipFlag)}.
+     * Advanced-only debug info appended to modifier tooltips: operation + true value.
      */
     default ITextComponent getDebugInfo(AttributeModifier modif, ITooltipFlag flag) {
-        ITextComponent debugInfo = new StringTextComponent("");
+        if (!flag.isAdvanced()) return new TextComponentString("");
 
-        if (flag.isAdvanced()) {
-            // Advanced Tooltips show the underlying operation and the "true" value. We offset
-            // MULTIPLY_TOTAL by 1 due to how the operation is calculated.
-            double advValue =
-                    (modif.getOperation() == AttributeModifier.Operation.MULTIPLY_TOTAL ? 1 : 0)
-                            + modif.getAmount();
-            String valueStr = ItemStack.DECIMALFORMAT.format(advValue);
-            String txt = "";
-            switch (modif.getOperation()) {
-                case ADDITION:
-                    txt =
-                            advValue > 0
-                                    ? String.format("[+%s]", valueStr)
-                                    : String.format("[%s]", valueStr);
-                    break;
-                case MULTIPLY_BASE:
-                    txt =
-                            advValue > 0
-                                    ? String.format("[+%sx]", valueStr)
-                                    : String.format("[%sx]", valueStr);
-                    break;
-                case MULTIPLY_TOTAL:
-                    txt = String.format("[x%s]", valueStr);
-            }
-            ;
-            debugInfo =
-                    new StringTextComponent(" ")
-                            .append(new StringTextComponent(txt).mergeStyle(TextFormatting.GRAY));
+        double advValue =
+                (modif.getOperation() == AttributeModifier.Operation.MULTIPLY_TOTAL ? 1 : 0)
+                        + modif.getAmount();
+        String valueStr = ItemStack.DECIMALFORMAT.format(advValue);
+        String txt;
+        switch (modif.getOperation()) {
+            case ADDITION:
+                txt = advValue > 0 ? String.format("[+%s]", valueStr) : String.format("[%s]", valueStr);
+                break;
+            case MULTIPLY_BASE:
+                txt =
+                        advValue > 0
+                                ? String.format("[+%sx]", valueStr)
+                                : String.format("[%sx]", valueStr);
+                break;
+            case MULTIPLY_TOTAL:
+                txt = String.format("[x%s]", valueStr);
+                break;
+            default:
+                txt = "";
         }
-        return debugInfo;
+        return new TextComponentString(" ")
+                .appendSibling(
+                        new TextComponentString(txt).setStyle(new Style().setColor(TextFormatting.GRAY)));
     }
 
-    /**
-     * Gets the specific UUID that represents a "base" (green) modifier for this attribute.
-     *
-     * @return The UUID of the "base" modifier, or null, if no such modifier may exist.
-     */
+    /** UUID of the "base" (green) modifier for this attribute, or null if none. */
     @Nullable
     default UUID getBaseUUID() {
-        if (this == Attributes.ATTACK_DAMAGE) return AttributeHelper.BASE_ATTACK_DAMAGE;
-        else if (this == Attributes.ATTACK_SPEED) return AttributeHelper.BASE_ATTACK_SPEED;
-        else if (this == ForgeMod.REACH_DISTANCE.get()) return AttributeHelper.BASE_ENTITY_REACH;
+        if (this == SharedMonsterAttributes.ATTACK_DAMAGE) return AttributeHelper.BASE_ATTACK_DAMAGE;
+        if (this == SharedMonsterAttributes.ATTACK_SPEED) return AttributeHelper.BASE_ATTACK_SPEED;
+        // 1.12.2: EntityPlayer.REACH_DISTANCE (Forge-registered) — compare by name to avoid
+        // circular classloads.
+        if ("generic.reachDistance".equals(this.ths().getName())) return AttributeHelper.BASE_ENTITY_REACH;
         return null;
     }
 
     /**
-     * Converts an attribute modifier into its tooltip representation.
-     *
-     * <p>This method does not handle formatting of "base" modifiers, such as Attack Damage or
-     * Attack Speed.
-     *
-     * <p>
-     *
-     * @param merged The attribute modifier being converted to a component.
-     * @param flag The tooltip flag.
-     * @return The component representation of the passed attribute modifier.
+     * Renders the "base" (green) tooltip line for attributes like attack damage. When advanced
+     * tooltips are active, debug info with the item-supplied portion is appended.
      */
-    default IFormattableTextComponent toBaseComponent(
+    default ITextComponent toBaseComponent(
             double value, double entityBase, boolean merged, ITooltipFlag flag) {
-        Attribute attr = this.ths();
+        IAttribute attr = this.ths();
 
-        ITextComponent debugInfo = new StringTextComponent("");
-
-        if (flag.isAdvanced() && !merged) {
-            // Advanced Tooltips cause us to emit the entity's base value and the base value of the
-            // item.
-            debugInfo =
-                    new StringTextComponent(" ")
-                            .append(
-                                    new TranslationTextComponent(
-                                                    AttributesLib.MODID + ".adv.base",
-                                                    ItemStack.DECIMALFORMAT.format(entityBase),
-                                                    ItemStack.DECIMALFORMAT.format(
-                                                            value - entityBase))
-                                            .mergeStyle(TextFormatting.GRAY));
-        }
-
-        TextComponent comp =
-                new TranslationTextComponent(
+        ITextComponent comp =
+                new TextComponentTranslation(
                         "attribute.modifier.equals.0",
                         ItemStack.DECIMALFORMAT.format(value),
-                        new TranslationTextComponent(attr.getAttributeName()));
+                        new TextComponentTranslation(attr.getName()));
 
-        return comp.append(debugInfo);
+        if (flag.isAdvanced() && !merged) {
+            ITextComponent debug =
+                    new TextComponentString(" ")
+                            .appendSibling(
+                                    new TextComponentTranslation(
+                                                    AttributesLib.MODID + ".adv.base",
+                                                    ItemStack.DECIMALFORMAT.format(entityBase),
+                                                    ItemStack.DECIMALFORMAT.format(value - entityBase))
+                                            .setStyle(new Style().setColor(TextFormatting.GRAY)));
+            comp.appendSibling(debug);
+        }
+
+        return comp;
     }
 
     /**
-     * Certain attributes, such as Attack Damage, are increased by an Enchantment that doesn't
-     * actually apply an attribute modifier.<br>
-     * This method allows for including certain additional variables in the computation of "base"
-     * attribute values.
-     *
-     * @param stack The stack in question.
-     * @return Any bonus value to be applied to the attribute's value, after all modifiers have been
-     *     applied.
+     * Certain attributes (e.g. Attack Damage) are boosted by enchantments that don't apply modifiers.
+     * This method returns the additional bonus to fold into the "base" value display.
      */
     default double getBonusBaseValue(ItemStack stack) {
-        if (this == Attributes.ATTACK_DAMAGE)
-            return EnchantmentHelper.getModifierForCreature(stack, CreatureAttribute.UNDEFINED);
+        if (this == SharedMonsterAttributes.ATTACK_DAMAGE) {
+            return EnchantmentHelper.getModifierForCreature(stack, EnumCreatureAttribute.UNDEFINED);
+        }
         return 0;
     }
 
     /**
-     * This method is invoked when {@link #getBonusBaseValue(ItemStack)} returns a value higher than
-     * zero.<br>
-     * It is responsible for adding tooltip lines that explain where the bonus values from {@link
-     * #getBonusBaseValue(ItemStack)} are from.
-     *
-     * @param stack The stack in question.
-     * @param tooltip The tooltip consumer.
-     * @param flag The tooltip flag.
+     * Adds tooltip lines explaining where bonus values from {@link #getBonusBaseValue(ItemStack)}
+     * come from.
      */
     default void addBonusTooltips(
-            ItemStack stack, Consumer<IFormattableTextComponent> tooltip, ITooltipFlag flag) {
-        if (this == Attributes.ATTACK_DAMAGE) {
+            ItemStack stack, Consumer<ITextComponent> tooltip, ITooltipFlag flag) {
+        if (this == SharedMonsterAttributes.ATTACK_DAMAGE) {
             float sharpness =
-                    EnchantmentHelper.getModifierForCreature(stack, CreatureAttribute.UNDEFINED);
-            ITextComponent debugInfo = new StringTextComponent("");
-            if (flag.isAdvanced()) {
-                // Show the user that this fake modifier is from Sharpness.
-                debugInfo =
-                        new StringTextComponent(" ")
-                                .append(
-                                        new TranslationTextComponent(
-                                                        AttributesLib.MODID
-                                                                + ".adv.sharpness_bonus",
-                                                        sharpness)
-                                                .mergeStyle(TextFormatting.GRAY));
-            }
-            IFormattableTextComponent comp =
+                    EnchantmentHelper.getModifierForCreature(stack, EnumCreatureAttribute.UNDEFINED);
+            ITextComponent comp =
                     AttributeHelper.list()
-                            .append(
-                                    new TranslationTextComponent(
+                            .appendSibling(
+                                    new TextComponentTranslation(
                                                     "attribute.modifier.plus.0",
                                                     ItemStack.DECIMALFORMAT.format(sharpness),
-                                                    new TranslationTextComponent(
-                                                            this.ths().getAttributeName()))
-                                            .mergeStyle(TextFormatting.BLUE));
-            tooltip.accept(comp.append(debugInfo));
+                                                    new TextComponentTranslation(this.ths().getName()))
+                                            .setStyle(new Style().setColor(TextFormatting.BLUE)));
+            if (flag.isAdvanced()) {
+                comp.appendSibling(
+                        new TextComponentString(" ")
+                                .appendSibling(
+                                        new TextComponentTranslation(
+                                                        AttributesLib.MODID + ".adv.sharpness_bonus",
+                                                        sharpness)
+                                                .setStyle(new Style().setColor(TextFormatting.GRAY))));
+            }
+            tooltip.accept(comp);
         }
     }
 
-    default Attribute ths() {
-        return (Attribute) this;
+    default IAttribute ths() {
+        return (IAttribute) this;
     }
 
-    /** Helper method to invoke {@link #toComponent(AttributeModifier, ITooltipFlag)}. */
-    public static IFormattableTextComponent toComponent(
-            Attribute attr, AttributeModifier modif, ITooltipFlag flag) {
+    public static ITextComponent toComponent(
+            IAttribute attr, AttributeModifier modif, ITooltipFlag flag) {
         return ((IFormattableAttribute) attr).toComponent(modif, flag);
     }
 
-    /** Helper method to invoke {@link #toValueComponent(Operation, double, ITooltipFlag)}. */
-    public static IFormattableTextComponent toValueComponent(
-            Attribute attr, AttributeModifier.Operation op, double value, ITooltipFlag flag) {
+    public static ITextComponent toValueComponent(
+            IAttribute attr, AttributeModifier.Operation op, double value, ITooltipFlag flag) {
         return ((IFormattableAttribute) attr).toValueComponent(op, value, flag);
     }
 
-    /** Helper method to invoke {@link #toBaseComponent(double, double, boolean, ITooltipFlag)} */
-    public static IFormattableTextComponent toBaseComponent(
-            Attribute attr, double value, double entityBase, boolean merged, ITooltipFlag flag) {
+    public static ITextComponent toBaseComponent(
+            IAttribute attr, double value, double entityBase, boolean merged, ITooltipFlag flag) {
         return ((IFormattableAttribute) attr).toBaseComponent(value, entityBase, merged, flag);
     }
 
-    static boolean isNullOrAddition(@javax.annotation.Nullable AttributeModifier.Operation op) {
+    static boolean isNullOrAddition(@Nullable AttributeModifier.Operation op) {
         return op == null || op == AttributeModifier.Operation.ADDITION;
     }
 }

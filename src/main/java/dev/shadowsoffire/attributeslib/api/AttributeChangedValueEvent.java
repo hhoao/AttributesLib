@@ -1,32 +1,29 @@
 package dev.shadowsoffire.attributeslib.api;
 
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.ai.attributes.ModifiableAttributeInstance;
+import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.ai.attributes.IAttributeInstance;
 import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.eventbus.api.Event;
+import net.minecraftforge.fml.common.eventhandler.Event;
 
 /**
- * This event is fired whenever the value of an attribute changes values.<br>
- * It is fired on both sides at different points:
+ * Fired when the value of an attribute changes.
  *
- * <ul>
- *   <li>On the Server, it is fired from {@link AttributeMap#onAttributeModified} which is the
- *       builtin callback hook for values changing.
- *   <li>On the Client, it is fired from {@link ClientPacketListener#handleUpdateAttributes} after
- *       all changes have been processed.
- * </ul>
+ * <p>Server: fired from an {@code AbstractAttributeMap} mixin on {@code onAttributeModified}.<br>
+ * Client: fired from a {@code NetHandlerPlayClient} mixin after processing {@code
+ * SPacketEntityProperties}.
  *
- * It is fired on {@link MinecraftForge#EVENT_BUS}.
+ * <p>Fires on {@link MinecraftForge#EVENT_BUS}.
  */
 public class AttributeChangedValueEvent extends Event {
 
-    protected LivingEntity entity;
-    protected ModifiableAttributeInstance attrInst;
-    protected double oldValue, newValue;
+    protected final EntityLivingBase entity;
+    protected final IAttributeInstance attrInst;
+    protected final double oldValue;
+    protected final double newValue;
 
     public AttributeChangedValueEvent(
-            LivingEntity entity,
-            ModifiableAttributeInstance attrInst,
+            EntityLivingBase entity,
+            IAttributeInstance attrInst,
             double oldValue,
             double newValue) {
         this.entity = entity;
@@ -35,22 +32,18 @@ public class AttributeChangedValueEvent extends Event {
         this.newValue = newValue;
     }
 
-    /** @return The Entity whose attribute was modified. */
-    public LivingEntity getEntity() {
+    public EntityLivingBase getEntity() {
         return this.entity;
     }
 
-    /** @return The Attribute instance whose value has changed. */
-    public ModifiableAttributeInstance getAttributeInstance() {
+    public IAttributeInstance getAttributeInstance() {
         return this.attrInst;
     }
 
-    /** @return The old value of the attribute, before the change occurred. */
     public double getOldValue() {
         return this.oldValue;
     }
 
-    /** @return The new value of the attribute, after the change occurred. */
     public double getNewValue() {
         return this.newValue;
     }

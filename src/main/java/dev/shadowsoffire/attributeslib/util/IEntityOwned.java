@@ -1,10 +1,10 @@
 package dev.shadowsoffire.attributeslib.util;
 
-import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.EntityLivingBase;
 
 public interface IEntityOwned {
 
-    public LivingEntity getOwner();
+    EntityLivingBase getOwner();
 
-    public void setOwner(LivingEntity owner);
+    void setOwner(EntityLivingBase owner);
 }

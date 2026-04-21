@@ -3,11 +3,13 @@ package dev.shadowsoffire.attributeslib.util;
 import java.util.UUID;
 import net.minecraft.item.Item;
 
-public final class ItemAccess extends Item {
+/**
+ * 1.12.2's {@link Item} exposes the base attack modifier UUIDs as public constants, so we can just
+ * forward them directly — no protected access helper needed.
+ */
+public final class ItemAccess {
 
-    private ItemAccess(Properties pProperties) {
-        super(pProperties);
-    }
+    private ItemAccess() {}
 
     public static UUID getBaseAD() {
         return Item.ATTACK_DAMAGE_MODIFIER;

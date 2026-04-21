@@ -1,10 +1,9 @@
 package dev.shadowsoffire.attributeslib.util;
 
 import java.util.Comparator;
-import net.minecraft.util.ResourceLocation;
-import net.minecraft.util.registry.Registry;
+import net.minecraft.entity.ai.attributes.IAttribute;
 
-/** Misc Comparator Utils */
+/** Misc Comparator Utils. */
 public class Comparators {
 
     @SafeVarargs
@@ -16,8 +15,11 @@ public class Comparators {
         return c;
     }
 
-    // Note: Will NPE on unregistered objects.
-    public static <T> Comparator<T> idComparator(Registry<T> reg) {
-        return Comparator.comparing(reg::getKey, ResourceLocation::compareTo);
+    /**
+     * 1.12.2 has no attribute registry; order attributes by their unlocalised name which serves as a
+     * stable identifier.
+     */
+    public static Comparator<IAttribute> attributeNameComparator() {
+        return Comparator.comparing(IAttribute::getName);
     }
 }
