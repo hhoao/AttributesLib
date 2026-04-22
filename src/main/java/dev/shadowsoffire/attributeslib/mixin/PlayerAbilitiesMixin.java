@@ -1,26 +1,26 @@
 package dev.shadowsoffire.attributeslib.mixin;
 
 import dev.shadowsoffire.attributeslib.util.IEntityOwned;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.player.PlayerAbilities;
+import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.player.PlayerCapabilities;
 import org.spongepowered.asm.mixin.Mixin;
 
 /**
- * For the Creative Flight Attribute, the Abilities must be aware of the owning Player so that the
- * fields can be updated to reflect the attribute value.
+ * For the Creative Flight Attribute, the Capabilities must be aware of the owning Player so that
+ * the {@code allowFlying} / {@code isFlying} fields can be updated to reflect the attribute value.
  */
-@Mixin(PlayerAbilities.class)
+@Mixin(PlayerCapabilities.class)
 public class PlayerAbilitiesMixin implements IEntityOwned {
 
-    protected LivingEntity owner;
+    protected EntityLivingBase owner;
 
     @Override
-    public LivingEntity getOwner() {
+    public EntityLivingBase getOwner() {
         return owner;
     }
 
     @Override
-    public void setOwner(LivingEntity owner) {
+    public void setOwner(EntityLivingBase owner) {
         if (this.owner != null)
             throw new UnsupportedOperationException("Cannot set the owner when it is already set.");
         if (owner == null) throw new UnsupportedOperationException("Cannot set the owner to null.");

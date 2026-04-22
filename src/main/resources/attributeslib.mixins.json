@@ -10,14 +10,9 @@
     "AttributeMixin",
     "CombatRulesMixin",
     "EntityLivingBaseAttributesMixin",
-    "EntityMixin",
-    "IForgeItemMixin",
-    "ItemStackMixin",
     "LivingEntityMixin",
-    "NearestAttackableTargetGoalMixin",
     "PlayerAbilitiesMixin",
-    "PlayerMixin",
-    "PotionUtilsMixin"
+    "PlayerMixin"
   ],
   "client": [
     "client.ClientPacketListenerMixin",

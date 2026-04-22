@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.Overwrite;
 public class CombatRulesMixin {
 
     /**
-     * @see {@link ALCombatRules#getDamageAfterProtection(LivingEntity, DamageSource, float, float)}
+     * @see ALCombatRules#getDamageAfterProtection
      */
     @Overwrite
     public static float getDamageAfterMagicAbsorb(float damage, float protPoints) {
@@ -18,8 +18,7 @@ public class CombatRulesMixin {
     }
 
     /**
-     * @see {@link ALCombatRules#getDamageAfterArmor(LivingEntity, DamageSource, float, float,
-     *     float)}
+     * @see ALCombatRules#getDamageAfterArmor
      */
     @Overwrite
     public static float getDamageAfterAbsorb(float damage, float armor, float toughness) {

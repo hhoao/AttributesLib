@@ -1,8 +1,8 @@
 package dev.shadowsoffire.attributeslib.mixin;
 
 import dev.shadowsoffire.attributeslib.api.IFormattableAttribute;
-import net.minecraft.entity.ai.attributes.Attribute;
+import net.minecraft.entity.ai.attributes.BaseAttribute;
 import org.spongepowered.asm.mixin.Mixin;
 
-@Mixin(Attribute.class)
+@Mixin(BaseAttribute.class)
 public class AttributeMixin implements IFormattableAttribute {}
