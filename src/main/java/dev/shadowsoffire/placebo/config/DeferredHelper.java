@@ -26,8 +26,8 @@ import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
 public class DeferredHelper {
 
     protected final String modid;
-    private final List<Registrar<Potion>> potions = new ArrayList<>();
-    private final List<Registrar<SoundEvent>> sounds = new ArrayList<>();
+    private final List<Registrar<? extends Potion>> potions = new ArrayList<>();
+    private final List<Registrar<? extends SoundEvent>> sounds = new ArrayList<>();
     private final Map<ResourceLocation, IAttribute> attributes = new LinkedHashMap<>();
 
     /**
@@ -80,26 +80,28 @@ public class DeferredHelper {
 
     @SubscribeEvent
     public void onRegisterPotions(RegistryEvent.Register<Potion> e) {
-        for (Registrar<Potion> r : this.potions) {
-            Potion entry = r.factory.get();
-            if (entry.getRegistryName() == null) {
-                entry.setRegistryName(r.id);
-            }
-            e.getRegistry().register(entry);
-            r.obj.value = entry;
+        for (Registrar<? extends Potion> r : this.potions) {
+            bindAndRegister(r, e);
         }
     }
 
     @SubscribeEvent
     public void onRegisterSounds(RegistryEvent.Register<SoundEvent> e) {
-        for (Registrar<SoundEvent> r : this.sounds) {
-            SoundEvent entry = r.factory.get();
-            if (entry.getRegistryName() == null) {
-                entry.setRegistryName(r.id);
-            }
-            e.getRegistry().register(entry);
-            r.obj.value = entry;
+        for (Registrar<? extends SoundEvent> r : this.sounds) {
+            bindAndRegister(r, e);
         }
+    }
+
+    private static <T extends net.minecraftforge.registries.IForgeRegistryEntry<T>>
+            void bindAndRegister(Registrar<? extends T> r, RegistryEvent.Register<T> e) {
+        T entry = r.factory.get();
+        if (entry.getRegistryName() == null) {
+            entry.setRegistryName(r.id);
+        }
+        e.getRegistry().register(entry);
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        RegObj raw = r.obj;
+        raw.value = entry;
     }
 
     /** A minimal holder replacing 1.16's {@code RegistryObject} — exposes {@code get()} only. */

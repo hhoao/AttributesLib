@@ -10,6 +10,9 @@ import org.spongepowered.asm.mixin.Overwrite;
 public class CombatRulesMixin {
 
     /**
+     * @author AttributesLib
+     * @reason Delegate protection reduction to the configurable {@link ALCombatRules} formula so
+     *     protection pierce/shred can be applied upstream.
      * @see ALCombatRules#getDamageAfterProtection
      */
     @Overwrite
@@ -18,6 +21,9 @@ public class CombatRulesMixin {
     }
 
     /**
+     * @author AttributesLib
+     * @reason Delegate armor reduction to the configurable {@link ALCombatRules} formula so armor
+     *     pierce/shred can be applied upstream.
      * @see ALCombatRules#getDamageAfterArmor
      */
     @Overwrite

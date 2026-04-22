@@ -28,6 +28,8 @@ repositories {
 minecraft {
     mappings channel: project.mapping_channel, version: project.mapping_version
 
+    accessTransformer = file('src/main/resources/META-INF/attributeslib_at.cfg')
+
     runs {
         client {
             workingDirectory project.file('run')

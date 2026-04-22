@@ -16,7 +16,7 @@ public class PacketDistro {
      */
     public static void sendToTracking(
             SimpleNetworkWrapper channel, IMessage packet, WorldServer world, BlockPos pos) {
-        Chunk chunk = world.getChunk(pos);
+        Chunk chunk = world.getChunkFromBlockCoords(pos);
         for (EntityPlayer p : world.playerEntities) {
             if (!(p instanceof EntityPlayerMP)) {
                 continue;
