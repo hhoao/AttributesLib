@@ -3,16 +3,30 @@ package dev.shadowsoffire.attributeslib.packet;
 import dev.shadowsoffire.attributeslib.client.AttributesLibClient;
 import dev.shadowsoffire.placebo.network.MessageHelper;
 import dev.shadowsoffire.placebo.network.MessageProvider;
-import java.util.function.Supplier;
+import io.netty.buffer.ByteBuf;
 import net.minecraft.network.PacketBuffer;
-import net.minecraftforge.fml.network.NetworkEvent;
+import net.minecraftforge.fml.common.network.simpleimpl.IMessage;
+import net.minecraftforge.fml.common.network.simpleimpl.MessageContext;
+import net.minecraftforge.fml.relauncher.Side;
 
-public class CritParticleMessage {
+public class CritParticleMessage implements IMessage {
 
-    protected final int entityId;
+    protected int entityId;
+
+    public CritParticleMessage() {}
 
     public CritParticleMessage(int entityId) {
         this.entityId = entityId;
+    }
+
+    @Override
+    public void fromBytes(ByteBuf buf) {
+        this.entityId = buf.readInt();
+    }
+
+    @Override
+    public void toBytes(ByteBuf buf) {
+        buf.writeInt(this.entityId);
     }
 
     public static class Provider implements MessageProvider<CritParticleMessage> {
@@ -33,12 +47,14 @@ public class CritParticleMessage {
         }
 
         @Override
-        public void handle(CritParticleMessage msg, Supplier<NetworkEvent.Context> ctx) {
+        public void handle(CritParticleMessage msg, MessageContext ctx) {
             MessageHelper.handlePacket(
-                    () -> {
-                        AttributesLibClient.apothCrit(msg.entityId);
-                    },
-                    ctx);
+                    () -> AttributesLibClient.apothCrit(msg.entityId), ctx);
+        }
+
+        @Override
+        public Side getReceiveSide() {
+            return Side.CLIENT;
         }
     }
 }
