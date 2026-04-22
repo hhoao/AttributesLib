@@ -1,48 +1,52 @@
 package dev.shadowsoffire.attributeslib.mobfx;
 
 import dev.shadowsoffire.attributeslib.api.ALObjects;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.ai.attributes.AttributeModifierManager;
-import net.minecraft.particles.ParticleTypes;
-import net.minecraft.potion.Effect;
-import net.minecraft.potion.EffectType;
+import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.entity.ai.attributes.AbstractAttributeMap;
+import net.minecraft.init.SoundEvents;
+import net.minecraft.potion.Potion;
+import net.minecraft.util.EnumParticleTypes;
 import net.minecraft.util.SoundCategory;
-import net.minecraft.util.SoundEvents;
 import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.world.server.ServerWorld;
+import net.minecraft.world.WorldServer;
 
-public class DetonationEffect extends Effect {
+public class DetonationEffect extends Potion {
 
     public DetonationEffect() {
-        super(EffectType.HARMFUL, 0xFFD800);
+        super(true, 0xFFD800);
     }
 
     @Override
     public void removeAttributesModifiersFromEntity(
-            LivingEntity entity, AttributeModifierManager map, int amp) {
+            EntityLivingBase entity, AbstractAttributeMap map, int amp) {
         super.removeAttributesModifiersFromEntity(entity, map, amp);
-        int ticks = entity.getFireTimer();
+        int ticks = entity.fire;
         if (ticks > 0) {
-            entity.setFire(0);
+            entity.extinguish();
             entity.attackEntityFrom(ALObjects.DamageTypes.BLEEDING, (1 + amp) * ticks / 14F);
-            ServerWorld level = (ServerWorld) entity.world;
-            AxisAlignedBB bb = entity.getBoundingBox();
-            level.spawnParticle(
-                    ParticleTypes.FLAME,
-                    entity.getPosX(),
-                    entity.getPosY(),
-                    entity.getPosZ(),
-                    100,
-                    bb.getXSize(),
-                    bb.getYSize(),
-                    bb.getZSize(),
-                    0.25);
-            level.playSound(
+            if (!entity.world.isRemote) {
+                WorldServer level = (WorldServer) entity.world;
+                AxisAlignedBB bb = entity.getEntityBoundingBox();
+                double xSize = bb.maxX - bb.minX;
+                double ySize = bb.maxY - bb.minY;
+                double zSize = bb.maxZ - bb.minZ;
+                level.spawnParticle(
+                        EnumParticleTypes.FLAME,
+                        entity.posX,
+                        entity.posY,
+                        entity.posZ,
+                        100,
+                        xSize,
+                        ySize,
+                        zSize,
+                        0.25);
+            }
+            entity.world.playSound(
                     null,
-                    entity.getPosX(),
-                    entity.getPosY(),
-                    entity.getPosZ(),
-                    SoundEvents.ENTITY_DRAGON_FIREBALL_EXPLODE,
+                    entity.posX,
+                    entity.posY,
+                    entity.posZ,
+                    SoundEvents.ENTITY_ENDERDRAGON_FIREBALL_EPLD,
                     SoundCategory.HOSTILE,
                     1,
                     1.2F);

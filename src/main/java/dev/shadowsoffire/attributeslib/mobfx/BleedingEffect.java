@@ -3,21 +3,23 @@ package dev.shadowsoffire.attributeslib.mobfx;
 import static dev.shadowsoffire.attributeslib.impl.AttributeEvents.src;
 
 import dev.shadowsoffire.attributeslib.api.ALObjects;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.potion.Effect;
-import net.minecraft.potion.EffectType;
+import net.minecraft.entity.EntityLivingBase;
+import net.minecraft.potion.Potion;
+import net.minecraft.util.DamageSource;
 
-public class BleedingEffect extends Effect {
+public class BleedingEffect extends Potion {
 
     public BleedingEffect() {
-        super(EffectType.HARMFUL, 0x8B0000);
+        super(true, 0x8B0000);
     }
 
     @Override
-    public void performEffect(LivingEntity entity, int amplifier) {
-        entity.attackEntityFrom(
-                src(ALObjects.DamageTypes.BLEEDING, entity.getLastAttackedEntity()),
-                1.0F + amplifier);
+    public void performEffect(EntityLivingBase entity, int amplifier) {
+        EntityLivingBase attacker = entity.getRevengeTarget();
+        DamageSource source = attacker != null
+                ? src(ALObjects.DamageTypes.BLEEDING, attacker)
+                : ALObjects.DamageTypes.BLEEDING;
+        entity.attackEntityFrom(source, 1.0F + amplifier);
     }
 
     @Override
