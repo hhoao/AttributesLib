@@ -6,7 +6,7 @@ buildscript {
     }
     dependencies {
         classpath 'net.minecraftforge.gradle:ForgeGradle:3.+'
-        classpath 'org.spongepowered:mixingradle:0.6-SNAPSHOT'
+        classpath 'org.spongepowered:mixingradle:0.7-SNAPSHOT'
     }
 }
 
@@ -26,7 +26,7 @@ repositories {
 }
 
 minecraft {
-    mappings channel: mapping_channel, version: mapping_version
+    mappings channel: project.mapping_channel, version: project.mapping_version
 
     runs {
         client {
@@ -39,7 +39,7 @@ minecraft {
             property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
 
             args '--tweakClass', 'org.spongepowered.asm.launch.MixinTweaker',
-                 '--mixin', "${mod_id}.mixins.json"
+                 '--mixin', "${mod_id}.mixins.json".toString()
         }
 
         server {
@@ -52,7 +52,7 @@ minecraft {
             property 'mixin.env.refMapRemappingFile', "${projectDir}/build/createSrgToMcp/output.srg"
 
             args '--tweakClass', 'org.spongepowered.asm.launch.MixinTweaker',
-                 '--mixin', "${mod_id}.mixins.json"
+                 '--mixin', "${mod_id}.mixins.json".toString()
         }
     }
 }
