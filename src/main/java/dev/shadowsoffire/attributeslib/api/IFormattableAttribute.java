@@ -21,23 +21,33 @@ import net.minecraft.util.text.TextFormatting;
  * A Formattable Attribute elects to control its tooltip representation. Also serves as the primary
  * means of displaying attribute modifiers. In 1.12.2 this is applied onto {@link IAttribute}
  * instances via a mixin on {@code BaseAttribute}.
+ *
+ * <p>{@link AttributeModifier#getOperation()} returns an {@code int} in 1.12.2 ({@code 0} =
+ * addition, {@code 1} = multiply base, {@code 2} = multiply total), so operation parameters here are
+ * typed as {@link Integer} to permit {@code null} for "no modifier / base value" callers.
  */
 public interface IFormattableAttribute {
+
+    /** Additive operation. Equivalent to {@code AttributeModifier.Operation.ADDITION} in 1.16+. */
+    int OP_ADDITION = 0;
+
+    /** Multiplicative operation against the base value. Equivalent to {@code MULTIPLY_BASE}. */
+    int OP_MULTIPLY_BASE = 1;
+
+    /** Multiplicative operation against the running total. Equivalent to {@code MULTIPLY_TOTAL}. */
+    int OP_MULTIPLY_TOTAL = 2;
 
     /**
      * Converts the value of an attribute modifier to its displayable form. Multiplication operations
      * are converted to percent form here.
      */
     default ITextComponent toValueComponent(
-            @Nullable AttributeModifier.Operation op, double value, ITooltipFlag flag) {
+            @Nullable Integer op, double value, ITooltipFlag flag) {
         IAttribute self = this.ths();
-        // Knockback Resistance uses percent display in vanilla for addition modifiers (hardcoded 10x
-        // multiplier); we bypass that by always displaying as percent here.
         if (self == SharedMonsterAttributes.KNOCKBACK_RESISTANCE) {
             return new TextComponentTranslation(
                     "attributeslib.value.percent", ItemStack.DECIMALFORMAT.format(value * 100));
         }
-        // Movement speed default is 0.1 and has no unit; display as percent when addition-like.
         if (self == SharedMonsterAttributes.MOVEMENT_SPEED && isNullOrAddition(op)) {
             return new TextComponentTranslation(
                     "attributeslib.value.percent", ItemStack.DECIMALFORMAT.format(value * 1000));
@@ -72,28 +82,25 @@ public interface IFormattableAttribute {
         return comp;
     }
 
-    /**
-     * Advanced-only debug info appended to modifier tooltips: operation + true value.
-     */
+    /** Advanced-only debug info appended to modifier tooltips: operation + true value. */
     default ITextComponent getDebugInfo(AttributeModifier modif, ITooltipFlag flag) {
         if (!flag.isAdvanced()) return new TextComponentString("");
 
-        double advValue =
-                (modif.getOperation() == AttributeModifier.Operation.MULTIPLY_TOTAL ? 1 : 0)
-                        + modif.getAmount();
+        int op = modif.getOperation();
+        double advValue = (op == OP_MULTIPLY_TOTAL ? 1 : 0) + modif.getAmount();
         String valueStr = ItemStack.DECIMALFORMAT.format(advValue);
         String txt;
-        switch (modif.getOperation()) {
-            case ADDITION:
+        switch (op) {
+            case OP_ADDITION:
                 txt = advValue > 0 ? String.format("[+%s]", valueStr) : String.format("[%s]", valueStr);
                 break;
-            case MULTIPLY_BASE:
+            case OP_MULTIPLY_BASE:
                 txt =
                         advValue > 0
                                 ? String.format("[+%sx]", valueStr)
                                 : String.format("[%sx]", valueStr);
                 break;
-            case MULTIPLY_TOTAL:
+            case OP_MULTIPLY_TOTAL:
                 txt = String.format("[x%s]", valueStr);
                 break;
             default:
@@ -109,8 +116,6 @@ public interface IFormattableAttribute {
     default UUID getBaseUUID() {
         if (this == SharedMonsterAttributes.ATTACK_DAMAGE) return AttributeHelper.BASE_ATTACK_DAMAGE;
         if (this == SharedMonsterAttributes.ATTACK_SPEED) return AttributeHelper.BASE_ATTACK_SPEED;
-        // 1.12.2: EntityPlayer.REACH_DISTANCE (Forge-registered) — compare by name to avoid
-        // circular classloads.
         if ("generic.reachDistance".equals(this.ths().getName())) return AttributeHelper.BASE_ENTITY_REACH;
         return null;
     }
@@ -195,7 +200,7 @@ public interface IFormattableAttribute {
     }
 
     public static ITextComponent toValueComponent(
-            IAttribute attr, AttributeModifier.Operation op, double value, ITooltipFlag flag) {
+            IAttribute attr, @Nullable Integer op, double value, ITooltipFlag flag) {
         return ((IFormattableAttribute) attr).toValueComponent(op, value, flag);
     }
 
@@ -204,7 +209,7 @@ public interface IFormattableAttribute {
         return ((IFormattableAttribute) attr).toBaseComponent(value, entityBase, merged, flag);
     }
 
-    static boolean isNullOrAddition(@Nullable AttributeModifier.Operation op) {
-        return op == null || op == AttributeModifier.Operation.ADDITION;
+    static boolean isNullOrAddition(@Nullable Integer op) {
+        return op == null || op == OP_ADDITION;
     }
 }

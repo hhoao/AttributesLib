@@ -32,7 +32,7 @@ public class PercentBasedAttribute extends RangedAttribute implements IFormattab
 
     @Override
     public ITextComponent toValueComponent(
-            AttributeModifier.Operation op, double value, ITooltipFlag flag) {
+            @Nullable Integer op, double value, ITooltipFlag flag) {
         return new TextComponentTranslation(
                 "attributeslib.value.percent", ItemStack.DECIMALFORMAT.format(value * 100));
     }

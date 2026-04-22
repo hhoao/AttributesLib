@@ -16,8 +16,8 @@ import net.minecraft.util.text.TextFormatting;
  * A Boolean Attribute displays modifiers as "Enables" or "Forcibly Disables".
  *
  * <ul>
- *   <li>Value 1, {@link AttributeModifier.Operation#ADDITION op=0} — enable.
- *   <li>Value -1, {@link AttributeModifier.Operation#MULTIPLY_TOTAL op=2} — force-disable.
+ *   <li>Value 1, op {@value IFormattableAttribute#OP_ADDITION} — enable.
+ *   <li>Value -1, op {@value IFormattableAttribute#OP_MULTIPLY_TOTAL} — force-disable.
  * </ul>
  */
 public class BooleanAttribute extends RangedAttribute implements IFormattableAttribute {
@@ -28,13 +28,13 @@ public class BooleanAttribute extends RangedAttribute implements IFormattableAtt
 
     @Override
     public ITextComponent toValueComponent(
-            AttributeModifier.Operation op, double value, ITooltipFlag flag) {
+            @Nullable Integer op, double value, ITooltipFlag flag) {
         if (op == null) {
             return new TextComponentTranslation(
                     "attributeslib.value.boolean." + (value > 0 ? "enabled" : "disabled"));
-        } else if (op == AttributeModifier.Operation.ADDITION && (int) value == 1) {
+        } else if (op == OP_ADDITION && (int) value == 1) {
             return new TextComponentTranslation("attributeslib.value.boolean.enable");
-        } else if (op == AttributeModifier.Operation.MULTIPLY_TOTAL && (int) value == -1) {
+        } else if (op == OP_MULTIPLY_TOTAL && (int) value == -1) {
             return new TextComponentTranslation("attributeslib.value.boolean.force_disable");
         }
         return new TextComponentTranslation("attributeslib.value.boolean.invalid");
