@@ -2,20 +2,25 @@ package dev.shadowsoffire.attributeslib.util;
 
 import java.util.UUID;
 import net.minecraft.item.Item;
+import net.minecraftforge.fml.common.ObfuscationReflectionHelper;
 
 /**
- * 1.12.2's {@link Item} exposes the base attack modifier UUIDs as public constants, so we can just
- * forward them directly — no protected access helper needed.
+ * Resolve vanilla's base attack modifier UUIDs without relying on a dev-time access transformer.
  */
 public final class ItemAccess {
+
+    private static final UUID BASE_ATTACK_DAMAGE =
+            ObfuscationReflectionHelper.getPrivateValue(Item.class, null, "field_111210_e");
+    private static final UUID BASE_ATTACK_SPEED =
+            ObfuscationReflectionHelper.getPrivateValue(Item.class, null, "field_185050_h");
 
     private ItemAccess() {}
 
     public static UUID getBaseAD() {
-        return Item.ATTACK_DAMAGE_MODIFIER;
+        return BASE_ATTACK_DAMAGE;
     }
 
     public static UUID getBaseAS() {
-        return Item.ATTACK_SPEED_MODIFIER;
+        return BASE_ATTACK_SPEED;
     }
 }
