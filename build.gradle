@@ -136,3 +136,22 @@ publishing {
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
 }
+
+// ------------------------------------------------------------------
+// dev-run 修复：FG3 + 1.12.2 legacydev 下，FML 把 @Mod 类所在目录
+// 注册为 FMLFileResourcePack 源，但那目录不包含 assets/mcmod.info/pack.mcmeta
+// （它们只在 build/resources/main）。表现：lang 走 raw key、贴图报
+// "Failed to load texture"。把 resources 镜像一份到 classes 目录，
+// 让 FML 从同一个目录既识别到 mod 又能读到资源。仅影响 dev run，不动
+// processResources 原输出（保持 FG3 的 AT hash 稳定，jar 打包也不受影响）。
+// ------------------------------------------------------------------
+tasks.register('mirrorResourcesForDevRun', Copy) {
+    dependsOn tasks.named('processResources')
+    from sourceSets.main.output.resourcesDir
+    into file("${buildDir}/classes/java/main")
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+}
+
+tasks.matching { it.name == 'runClient' || it.name == 'runServer' }.configureEach {
+    dependsOn('mirrorResourcesForDevRun')
+}
