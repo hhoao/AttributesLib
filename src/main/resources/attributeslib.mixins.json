@@ -9,11 +9,14 @@
     "AttributeInstanceAccessor",
     "CombatRulesMixin",
     "EntityLivingBaseAttributesMixin",
+    "GameTypeMixin",
     "LivingEntityMixin",
     "PlayerAbilitiesMixin",
     "PlayerMixin"
   ],
   "client": [
-    "ItemStackMixin"
+    "InventoryEffectRendererMixin",
+    "ItemStackMixin",
+    "NetHandlerPlayClientMixin"
   ]
 }
