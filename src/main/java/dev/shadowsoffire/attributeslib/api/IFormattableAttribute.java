@@ -74,7 +74,7 @@ public interface IFormattableAttribute {
                 new TextComponentTranslation(
                                 key,
                                 this.toValueComponent(modif.getOperation(), value, flag),
-                                new TextComponentTranslation(attr.getName()))
+                                attrNameComponent(attr))
                         .setStyle(new Style().setColor(color));
 
         ITextComponent debug = this.getDebugInfo(modif, flag);
@@ -132,7 +132,7 @@ public interface IFormattableAttribute {
                 new TextComponentTranslation(
                         "attribute.modifier.equals.0",
                         ItemStack.DECIMALFORMAT.format(value),
-                        new TextComponentTranslation(attr.getName()));
+                        attrNameComponent(attr));
 
         if (flag.isAdvanced() && !merged) {
             ITextComponent debug =
@@ -175,7 +175,7 @@ public interface IFormattableAttribute {
                                     new TextComponentTranslation(
                                                     "attribute.modifier.plus.0",
                                                     ItemStack.DECIMALFORMAT.format(sharpness),
-                                                    new TextComponentTranslation(this.ths().getName()))
+                                                    attrNameComponent(this.ths()))
                                             .setStyle(new Style().setColor(TextFormatting.BLUE)));
             if (flag.isAdvanced()) {
                 comp.appendSibling(
@@ -209,7 +209,7 @@ public interface IFormattableAttribute {
                 new TextComponentTranslation(
                                 key,
                                 toValueComponent(attr, modif.getOperation(), value, flag),
-                                new TextComponentTranslation(attr.getName()))
+                                attrNameComponent(attr))
                         .setStyle(new Style().setColor(color));
 
         ITextComponent debug = getDebugInfo(attr, modif, flag);
@@ -247,7 +247,7 @@ public interface IFormattableAttribute {
                 new TextComponentTranslation(
                         "attribute.modifier.equals.0",
                         ItemStack.DECIMALFORMAT.format(value),
-                        new TextComponentTranslation(attr.getName()));
+                        attrNameComponent(attr));
 
         if (flag.isAdvanced() && !merged) {
             ITextComponent debug =
@@ -266,6 +266,17 @@ public interface IFormattableAttribute {
 
     static boolean isNullOrAddition(@Nullable Integer op) {
         return op == null || op == OP_ADDITION;
+    }
+
+    /**
+     * 1.12.2 下 {@link IAttribute#getName()} 只返回 {@code generic.armor} /
+     * {@code attributeslib.armor_pierce} 这样的裸 key；vanilla + Forge 的 lang 约定是
+     * 加 {@code attribute.name.} 前缀。本 mod 自己注册的属性也通过 lang 文件里镜像了
+     * 带前缀的条目，所以这里统一用带前缀的 key 构造翻译组件。这样 tooltip 里的
+     * {@code +6 generic.attackDamage} 就能被翻译成 {@code +6 攻击伤害}。
+     */
+    static ITextComponent attrNameComponent(IAttribute attr) {
+        return new TextComponentTranslation("attribute.name." + attr.getName());
     }
 
     static ITextComponent getDebugInfo(
