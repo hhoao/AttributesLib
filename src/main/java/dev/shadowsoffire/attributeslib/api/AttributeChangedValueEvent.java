@@ -6,13 +6,17 @@ import net.minecraftforge.common.MinecraftForge;
 import net.minecraftforge.fml.common.eventhandler.Event;
 
 /**
- * Fired when the value of an attribute changes.
+ * This event is fired whenever the value of an attribute changes values.<br>
+ * It is fired on both sides at different points:
  *
- * <p>Server: fired from an {@code AbstractAttributeMap} mixin on {@code onAttributeModified}.<br>
- * Client: fired from a {@code NetHandlerPlayClient} mixin after processing {@code
- * SPacketEntityProperties}.
+ * <ul>
+ *   <li>On the Server, it is fired from an {@code AbstractAttributeMap} mixin on {@code
+ *       onAttributeModified}, which is the builtin callback hook for values changing.
+ *   <li>On the Client, it is fired from a {@code NetHandlerPlayClient} mixin after all changes
+ *       from {@code SPacketEntityProperties} have been processed.
+ * </ul>
  *
- * <p>Fires on {@link MinecraftForge#EVENT_BUS}.
+ * It is fired on {@link MinecraftForge#EVENT_BUS}.
  */
 public class AttributeChangedValueEvent extends Event {
 
@@ -32,18 +36,22 @@ public class AttributeChangedValueEvent extends Event {
         this.newValue = newValue;
     }
 
+    /** @return The Entity whose attribute was modified. */
     public EntityLivingBase getEntity() {
         return this.entity;
     }
 
+    /** @return The Attribute instance whose value has changed. */
     public IAttributeInstance getAttributeInstance() {
         return this.attrInst;
     }
 
+    /** @return The old value of the attribute, before the change occurred. */
     public double getOldValue() {
         return this.oldValue;
     }
 
+    /** @return The new value of the attribute, after the change occurred. */
     public double getNewValue() {
         return this.newValue;
     }

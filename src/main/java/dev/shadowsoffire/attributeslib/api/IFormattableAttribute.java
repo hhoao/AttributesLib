@@ -196,20 +196,108 @@ public interface IFormattableAttribute {
 
     public static ITextComponent toComponent(
             IAttribute attr, AttributeModifier modif, ITooltipFlag flag) {
-        return ((IFormattableAttribute) attr).toComponent(modif, flag);
+        if (attr instanceof IFormattableAttribute) {
+            return ((IFormattableAttribute) attr).toComponent(modif, flag);
+        }
+
+        double value = modif.getAmount();
+        TextFormatting color = value > 0.0D ? TextFormatting.BLUE : TextFormatting.RED;
+        String key = value > 0.0D ? "attributeslib.modifier.plus" : "attributeslib.modifier.take";
+        if (value < 0.0D) value *= -1.0D;
+
+        ITextComponent comp =
+                new TextComponentTranslation(
+                                key,
+                                toValueComponent(attr, modif.getOperation(), value, flag),
+                                new TextComponentTranslation(attr.getName()))
+                        .setStyle(new Style().setColor(color));
+
+        ITextComponent debug = getDebugInfo(attr, modif, flag);
+        if (debug != null) comp.appendSibling(debug);
+        return comp;
     }
 
     public static ITextComponent toValueComponent(
             IAttribute attr, @Nullable Integer op, double value, ITooltipFlag flag) {
-        return ((IFormattableAttribute) attr).toValueComponent(op, value, flag);
+        if (attr instanceof IFormattableAttribute) {
+            return ((IFormattableAttribute) attr).toValueComponent(op, value, flag);
+        }
+
+        if (attr == SharedMonsterAttributes.KNOCKBACK_RESISTANCE) {
+            return new TextComponentTranslation(
+                    "attributeslib.value.percent", ItemStack.DECIMALFORMAT.format(value * 100));
+        }
+        if (attr == SharedMonsterAttributes.MOVEMENT_SPEED && isNullOrAddition(op)) {
+            return new TextComponentTranslation(
+                    "attributeslib.value.percent", ItemStack.DECIMALFORMAT.format(value * 1000));
+        }
+        String key =
+                isNullOrAddition(op) ? "attributeslib.value.flat" : "attributeslib.value.percent";
+        return new TextComponentTranslation(
+                key, ItemStack.DECIMALFORMAT.format(isNullOrAddition(op) ? value : value * 100));
     }
 
     public static ITextComponent toBaseComponent(
             IAttribute attr, double value, double entityBase, boolean merged, ITooltipFlag flag) {
-        return ((IFormattableAttribute) attr).toBaseComponent(value, entityBase, merged, flag);
+        if (attr instanceof IFormattableAttribute) {
+            return ((IFormattableAttribute) attr).toBaseComponent(value, entityBase, merged, flag);
+        }
+
+        ITextComponent comp =
+                new TextComponentTranslation(
+                        "attribute.modifier.equals.0",
+                        ItemStack.DECIMALFORMAT.format(value),
+                        new TextComponentTranslation(attr.getName()));
+
+        if (flag.isAdvanced() && !merged) {
+            ITextComponent debug =
+                    new TextComponentString(" ")
+                            .appendSibling(
+                                    new TextComponentTranslation(
+                                                    AttributesLib.MODID + ".adv.base",
+                                                    ItemStack.DECIMALFORMAT.format(entityBase),
+                                                    ItemStack.DECIMALFORMAT.format(value - entityBase))
+                                            .setStyle(new Style().setColor(TextFormatting.GRAY)));
+            comp.appendSibling(debug);
+        }
+
+        return comp;
     }
 
     static boolean isNullOrAddition(@Nullable Integer op) {
         return op == null || op == OP_ADDITION;
+    }
+
+    static ITextComponent getDebugInfo(
+            IAttribute attr, AttributeModifier modif, ITooltipFlag flag) {
+        if (attr instanceof IFormattableAttribute) {
+            return ((IFormattableAttribute) attr).getDebugInfo(modif, flag);
+        }
+
+        if (!flag.isAdvanced()) return new TextComponentString("");
+
+        int op = modif.getOperation();
+        double advValue = (op == OP_MULTIPLY_TOTAL ? 1 : 0) + modif.getAmount();
+        String valueStr = ItemStack.DECIMALFORMAT.format(advValue);
+        String txt;
+        switch (op) {
+            case OP_ADDITION:
+                txt = advValue > 0 ? String.format("[+%s]", valueStr) : String.format("[%s]", valueStr);
+                break;
+            case OP_MULTIPLY_BASE:
+                txt =
+                        advValue > 0
+                                ? String.format("[+%sx]", valueStr)
+                                : String.format("[%sx]", valueStr);
+                break;
+            case OP_MULTIPLY_TOTAL:
+                txt = String.format("[x%s]", valueStr);
+                break;
+            default:
+                txt = "";
+        }
+        return new TextComponentString(" ")
+                .appendSibling(
+                        new TextComponentString(txt).setStyle(new Style().setColor(TextFormatting.GRAY)));
     }
 }

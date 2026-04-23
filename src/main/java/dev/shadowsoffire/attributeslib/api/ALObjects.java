@@ -226,22 +226,41 @@ public class ALObjects {
 
         /**
          * An attribute with a dynamic base cannot have its value computed out of context, and is
-         * instead treated as a list of modifiers applied when the event occurs.
+         * instead treated as a list of modifiers that will be applied when the event occurs. The
+         * applied modifiers will use the normal rules of operations but on the dynamic base.
          */
         public static final ResourceLocation DYNAMIC_BASE_ATTTE = AttributesLib.loc("dynamic_base");
     }
 
     public static class DamageTypes {
 
+        /** Damage type used by {@link MobEffects#BLEEDING}. Bypasses armor. */
         public static final DamageSource BLEEDING =
                 new DamageSource("bleeding").setDamageBypassesArmor().setMagicDamage();
 
+        /**
+         * Damage type used by {@link MobEffects#DETONATION}. Bypasses armor, and is marked as magic
+         * damage.
+         */
         public static final DamageSource DETONATION = new DamageSource("detonation");
 
+        /**
+         * Damage type used by {@link Attributes#CURRENT_HP_DAMAGE}. Same properties as generic
+         * physical damage. Has attacker context.
+         */
         public static final DamageSource CURRENT_HP_DAMAGE = new DamageSource("current_hp_damage");
 
+        /**
+         * Damage type used by {@link Attributes#FIRE_DAMAGE}. Bypasses armor, and is marked as
+         * magic damage. Has attacker context.<br>
+         * Not marked as fire damage until fire resistance is reworked to not block all fire damage.
+         */
         public static final DamageSource FIRE_DAMAGE = new DamageSource("fire_damage");
 
+        /**
+         * Damage type used by {@link Attributes#COLD_DAMAGE}. Bypasses armor, and is marked as
+         * magic damage. Has attacker context.
+         */
         public static final DamageSource COLD_DAMAGE = new DamageSource("cold_damage");
 
         public static void bootstrap() {}
