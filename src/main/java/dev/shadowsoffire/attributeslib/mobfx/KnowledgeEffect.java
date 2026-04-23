@@ -9,6 +9,7 @@ public class KnowledgeEffect extends Potion {
 
     public KnowledgeEffect() {
         super(false, 0xF4EE42);
+        this.setPotionName("effect.attributeslib.knowledge");
         this.registerPotionAttributeModifier(
                 ALObjects.Attributes.EXPERIENCE_GAINED.get(),
                 "55688e2f-7db8-4d0b-bc90-eff194546c04",

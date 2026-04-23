@@ -11,6 +11,7 @@ public class BleedingEffect extends Potion {
 
     public BleedingEffect() {
         super(true, 0x8B0000);
+        this.setPotionName("effect.attributeslib.bleeding");
     }
 
     @Override

@@ -8,5 +8,6 @@ public class SunderingEffect extends Potion {
 
     public SunderingEffect() {
         super(true, 0x989898);
+        this.setPotionName("effect.attributeslib.sundering");
     }
 }
