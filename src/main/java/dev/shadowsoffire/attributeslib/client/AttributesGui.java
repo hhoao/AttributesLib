@@ -61,7 +61,7 @@ public class AttributesGui {
     private final EntityPlayerSP player;
     private final Minecraft mc;
     private final FontRenderer font;
-    private final GuiButton toggleBtn;
+    private final ToggleButton toggleBtn;
     private final GuiButton hideUnchangedBtn;
     private final List<IAttributeInstance> data = new ArrayList<>();
 
@@ -76,7 +76,7 @@ public class AttributesGui {
         this.mc = Minecraft.getMinecraft();
         this.player = this.mc.player;
         this.font = this.mc.fontRenderer;
-        this.toggleBtn = new GuiButton(TOGGLE_BUTTON_ID, 0, 0, 20, 20, "A");
+        this.toggleBtn = new ToggleButton(TOGGLE_BUTTON_ID, 0, 0);
         this.hideUnchangedBtn = new HideUnchangedButton(HIDE_UNCHANGED_BUTTON_ID, 0, 0);
         this.open = wasOpen;
         this.hideUnchangedBtn.visible = this.open;
@@ -107,19 +107,25 @@ public class AttributesGui {
         }
     }
 
+    public boolean isOpen() {
+        return this.open;
+    }
+
     public void toggleVisibility() {
-        this.open = !this.open;
+        this.setOpen(!this.open);
+    }
+
+    /**
+     * 1.12.2 的 {@link GuiInventory} 自带 Recipe Book，它也维护自己的 {@code guiLeft}
+     * 偏移（通过 {@code GuiRecipeBook.updateScreenPosition}）。之前的实现在这里强写
+     * {@code guiLeft} 会和 Recipe Book 的布局直接打架（表现：切配方书或切属性按钮
+     * 之后库存整体跑位）。所以这里只改变打开状态、不动 {@code guiLeft}，属性面板
+     * 就贴着 {@code guiLeft - WIDTH} 画，原版的布局留给原版自己管。
+     */
+    public void setOpen(boolean open) {
+        this.open = open;
         wasOpen = this.open;
         this.hideUnchangedBtn.visible = this.open;
-
-        int newLeftPos;
-        if (this.open && this.parent.width >= 379) {
-            newLeftPos = 177 + (this.parent.width - this.parent.xSize - 200) / 2;
-        } else {
-            newLeftPos = (this.parent.width - this.parent.xSize) / 2;
-        }
-        writeGuiInt("guiLeft", newLeftPos);
-
         this.syncLayout();
     }
 
@@ -129,6 +135,7 @@ public class AttributesGui {
 
         this.refreshData();
 
+        GlStateManager.color(1F, 1F, 1F, 1F);
         this.mc.getTextureManager().bindTexture(TEXTURES);
         Gui.drawModalRectWithCustomSizedTexture(
                 this.leftPos, this.topPos, 0, 0, WIDTH, HEIGHT, 256, 256);
@@ -139,6 +146,8 @@ public class AttributesGui {
                 this.topPos + 6,
                 0x404040);
 
+        GlStateManager.color(1F, 1F, 1F, 1F);
+        this.mc.getTextureManager().bindTexture(TEXTURES);
         int scrollbarPos = this.getMaxRows() == 0 ? 0 : (int) (117 * scrollOffset);
         Gui.drawModalRectWithCustomSizedTexture(
                 this.leftPos + 111,
@@ -216,6 +225,7 @@ public class AttributesGui {
 
     private void renderEntry(IAttributeInstance inst, int x, int y, int mouseX, int mouseY) {
         boolean hovered = this.getHoveredEntry(mouseX, mouseY) == inst;
+        GlStateManager.color(1F, 1F, 1F, 1F);
         this.mc.getTextureManager().bindTexture(TEXTURES);
         Gui.drawModalRectWithCustomSizedTexture(
                 x,
@@ -228,7 +238,7 @@ public class AttributesGui {
                 IMAGE_HEIGHT);
 
         IAttribute attr = inst.getAttribute();
-        String name = I18n.format(attr.getName());
+        String name = translateAttr(attr.getName());
         List<String> lines = this.font.listFormattedStringToWidth(name, 60);
         int splitWidth = 60;
         while (lines.size() > 2) {
@@ -314,7 +324,7 @@ public class AttributesGui {
         String header =
                 TextFormatting.GOLD.toString()
                         + TextFormatting.UNDERLINE
-                        + I18n.format(attr.getName());
+                        + translateAttr(attr.getName());
         if (isDynamic) {
             header +=
                     TextFormatting.RESET.toString()
@@ -331,11 +341,13 @@ public class AttributesGui {
         }
         tooltip.add(header);
 
-        String descKey = attr.getName() + ".desc";
+        String descPrefixed = "attribute.name." + attr.getName() + ".desc";
+        String descBare = attr.getName() + ".desc";
+        String descKey = I18n.hasKey(descPrefixed) ? descPrefixed : descBare;
         if (I18n.hasKey(descKey)) {
             tooltip.add(TextFormatting.YELLOW + "" + TextFormatting.ITALIC + I18n.format(descKey));
         } else if (AttributesLib.getTooltipFlag().isAdvanced()) {
-            tooltip.add(TextFormatting.GRAY + "" + TextFormatting.ITALIC + descKey);
+            tooltip.add(TextFormatting.GRAY + "" + TextFormatting.ITALIC + descBare);
         }
 
         TextFormatting valueColor = TextFormatting.GRAY;
@@ -488,6 +500,22 @@ public class AttributesGui {
         return tooltip;
     }
 
+    /**
+     * 1.12.2 下 {@link IAttribute#getName()} 只返回 {@code generic.armor} /
+     * {@code forge.swimSpeed} / {@code attributeslib.armor_pierce} 这样的裸 key；
+     * vanilla + Forge 本身的 lang 约定是加 {@code attribute.name.} 前缀
+     * （比如 {@code attribute.name.generic.armor}）。
+     * 先查带前缀的 key，命中就用翻译；否则 fallback 到裸 key（mod 自己的 lang 条目
+     * 写的就是裸 key 形式）；都没命中就直接返回裸 key，别显示 "attribute.name.xxx"
+     * 这种半成品。
+     */
+    private static String translateAttr(String key) {
+        String prefixed = "attribute.name." + key;
+        if (I18n.hasKey(prefixed)) return I18n.format(prefixed);
+        if (I18n.hasKey(key)) return I18n.format(key);
+        return key;
+    }
+
     private static boolean isDynamic(IAttribute attr) {
         String name = attr.getName();
         if (!name.startsWith(AttributesLib.MODID + ".")) return false;
@@ -570,7 +598,8 @@ public class AttributesGui {
 
         this.data.sort(
                 Comparator.comparing(
-                        inst -> I18n.format(inst.getAttribute().getName()), String.CASE_INSENSITIVE_ORDER));
+                        inst -> translateAttr(inst.getAttribute().getName()),
+                        String.CASE_INSENSITIVE_ORDER));
         this.startIndex = (int) (scrollOffset * this.getMaxRows() + 0.5D);
         this.startIndex = Math.min(this.startIndex, this.getMaxRows());
         this.startIndex = Math.max(this.startIndex, 0);
@@ -638,6 +667,29 @@ public class AttributesGui {
         return GUI_TOP;
     }
 
+    public static class ToggleButton extends GuiButton {
+
+        public ToggleButton(int id, int x, int y) {
+            super(id, x, y, 10, 10, "");
+        }
+
+        @Override
+        public void drawButton(Minecraft mc, int mouseX, int mouseY, float partialTicks) {
+            if (!this.visible) return;
+            this.hovered =
+                    mouseX >= this.x
+                            && mouseY >= this.y
+                            && mouseX < this.x + this.width
+                            && mouseY < this.y + this.height;
+            GlStateManager.color(1F, 1F, 1F, 1F);
+            mc.getTextureManager().bindTexture(TEXTURES);
+            int u = 131;
+            int v = this.hovered ? 10 : 0;
+            Gui.drawModalRectWithCustomSizedTexture(
+                    this.x, this.y, u, v, this.width, this.height, IMAGE_WIDTH, IMAGE_HEIGHT);
+        }
+    }
+
     public static class HideUnchangedButton extends GuiButton {
 
         public HideUnchangedButton(int id, int x, int y) {
@@ -653,6 +705,7 @@ public class AttributesGui {
                             && mouseY >= this.y
                             && mouseX < this.x + this.width
                             && mouseY < this.y + this.height;
+            GlStateManager.color(1F, 1F, 1F, 1F);
             mc.getTextureManager().bindTexture(TEXTURES);
             int u = 131;
             int v = 20;

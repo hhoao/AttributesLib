@@ -154,9 +154,13 @@ public class AttributesLibClient {
         this.attributesGui = new AttributesGui((GuiInventory) e.getGui());
         e.getButtonList().add(this.attributesGui.getToggleButton());
         e.getButtonList().add(this.attributesGui.getHideUnchangedButton());
-        if (AttributesGui.wasOpen || AttributesGui.swappedFromCurios) {
-            this.attributesGui.toggleVisibility();
-        }
+        // 1.12.2 GuiInventory.initGui 在切 Recipe Book 时会被重跑，触发 InitGuiEvent.Post。
+        // 这里必须只"还原 open 状态 + 重绑按钮"，不能 toggleVisibility()，否则每次
+        // 重入都会把面板关掉 / 顺手把 guiLeft 改回中心，和 Recipe Book 打架。
+        // 构造器里已经 this.open = wasOpen，状态已经对上；这里再显式 setOpen 一次是为了
+        // 在 swappedFromCurios 场景下把 hideUnchangedBtn 可见性和 syncLayout 刷新一遍。
+        boolean shouldBeOpen = AttributesGui.wasOpen || AttributesGui.swappedFromCurios;
+        this.attributesGui.setOpen(shouldBeOpen);
         AttributesGui.swappedFromCurios = false;
     }
 
