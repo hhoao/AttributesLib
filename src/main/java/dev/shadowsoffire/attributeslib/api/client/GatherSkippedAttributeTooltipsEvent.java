@@ -10,10 +10,14 @@ import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.fml.relauncher.Side;
 
 /**
- * Collects UUIDs of attribute modifiers that will not be displayed in item tooltips. Hidden
- * modifiers are still shown in the attributes GUI.
+ * This event is used to collect UUIDs of attribute modifiers that will not be displayed in item
+ * tooltips.
  *
- * <p>Fired on {@link MinecraftForge#EVENT_BUS}. Client only ({@link Side#CLIENT}).
+ * <p>This allows hiding specific modifiers for whatever reason. They will still be shown in the
+ * attributes GUI.
+ *
+ * <p>This event is fired on {@linkplain MinecraftForge#EVENT_BUS the main event bus}.<br>
+ * This event is only fired on the {@linkplain Side#CLIENT physical client}.
  */
 public class GatherSkippedAttributeTooltipsEvent extends PlayerEvent {
 
@@ -29,19 +33,31 @@ public class GatherSkippedAttributeTooltipsEvent extends PlayerEvent {
         this.flag = flag;
     }
 
+    /**
+     * Use to determine if the advanced information on item tooltips is being shown, toggled by
+     * F3+H.
+     */
     public ITooltipFlag getFlags() {
         return this.flag;
     }
 
+    /** The {@link ItemStack} with the tooltip. */
     public ItemStack getStack() {
         return this.stack;
     }
 
+    /**
+     * Mark the UUID of a specific attribute modifier as skipped, causing it to not be displayed in
+     * the tooltip.
+     */
     public void skipUUID(UUID id) {
         this.skips.add(id);
     }
 
-    /** May return null when the event is fired during search-tree bootstrap. */
+    /**
+     * This event is fired with a null player during startup when populating search trees for
+     * tooltips.
+     */
     @Override
     public EntityPlayer getEntityPlayer() {
         return super.getEntityPlayer();

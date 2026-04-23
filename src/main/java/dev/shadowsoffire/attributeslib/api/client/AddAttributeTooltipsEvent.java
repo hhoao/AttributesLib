@@ -10,11 +10,14 @@ import net.minecraftforge.event.entity.player.PlayerEvent;
 import net.minecraftforge.fml.relauncher.Side;
 
 /**
- * Fired to add extra attribute tooltip lines without having to manually locate the inject point.
- * 1.12.2 tooltips are plain {@link String} lines (including formatting codes), so listeners insert
- * formatted strings rather than {@code ITextComponent}s.
+ * This event is used to add additional attribute tooltip lines without having to manually locate
+ * the inject point.
  *
- * <p>Fired on {@link MinecraftForge#EVENT_BUS}. Client only ({@link Side#CLIENT}).
+ * <p>1.12.2 tooltips are plain {@link String} lines (including formatting codes), so listeners
+ * insert formatted strings rather than {@code ITextComponent}s.
+ *
+ * <p>This event is fired on {@linkplain MinecraftForge#EVENT_BUS the main event bus}.<br>
+ * This event is only fired on the {@linkplain Side#CLIENT physical client}.
  */
 public class AddAttributeTooltipsEvent extends PlayerEvent {
 
@@ -36,23 +39,33 @@ public class AddAttributeTooltipsEvent extends PlayerEvent {
         this.flag = flag;
     }
 
+    /**
+     * Use to determine if the advanced information on item tooltips is being shown, toggled by
+     * F3+H.
+     */
     public ITooltipFlag getFlags() {
         return this.flag;
     }
 
+    /** The {@link ItemStack} with the tooltip. */
     public ItemStack getStack() {
         return this.stack;
     }
 
+    /** The {@link ItemStack}'s full tooltip. */
     public List<String> getTooltip() {
         return this.tooltip;
     }
 
+    /** Returns an iterator pointed at the tail of the attribute tooltips. */
     public ListIterator<String> getAttributeTooltipIterator() {
         return this.attributeTooltipIterator;
     }
 
-    /** May return null when the event is fired during search-tree bootstrap. */
+    /**
+     * This event is fired with a null player during startup when populating search trees for
+     * tooltips.
+     */
     @Override
     public EntityPlayer getEntityPlayer() {
         return super.getEntityPlayer();

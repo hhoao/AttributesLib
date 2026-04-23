@@ -10,12 +10,16 @@ import net.minecraftforge.fml.common.eventhandler.Event;
 import net.minecraftforge.fml.relauncher.Side;
 
 /**
- * Fired when a container screen (inventory or creative) draws a hovered potion-effect tooltip.
- * Listeners may modify the tooltip. 1.12.2 renders effects on {@link GuiContainer} subclasses
- * (e.g. {@code GuiInventory}, {@code GuiContainerCreative}), so the screen argument is typed as
- * such rather than a dedicated effect-rendering class.
+ * This event is called when a container screen draws the tooltip lines for a hovered
+ * {@link PotionEffect}.<br>
+ * It can be used to modify the tooltip.
  *
- * <p>Fired on {@link MinecraftForge#EVENT_BUS}. Client only ({@link Side#CLIENT}).
+ * <p>1.12.2 renders effects on {@link GuiContainer} subclasses (e.g. {@code GuiInventory},
+ * {@code GuiContainerCreative}), so the screen argument is typed as such rather than a dedicated
+ * effect-rendering class.
+ *
+ * <p>This event is fired on {@linkplain MinecraftForge#EVENT_BUS the main event bus}.<br>
+ * This event is only fired on the {@linkplain Side#CLIENT physical client}.
  */
 public class GatherEffectScreenTooltipsEvent extends Event {
 
@@ -30,14 +34,17 @@ public class GatherEffectScreenTooltipsEvent extends Event {
         this.tooltip = new ArrayList<>(tooltip);
     }
 
+    /** @return The screen which will be rendering the tooltip lines. */
     public GuiContainer getScreen() {
         return this.screen;
     }
 
+    /** @return The effect whose tooltip is being drawn. */
     public PotionEffect getEffectInstance() {
         return this.effectInst;
     }
 
+    /** @return A mutable list of tooltip lines. */
     public List<ITextComponent> getTooltip() {
         return this.tooltip;
     }
