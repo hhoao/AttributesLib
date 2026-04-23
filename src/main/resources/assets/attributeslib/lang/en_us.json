@@ -30,6 +30,7 @@
 	"attributeslib.gui.show_attributes": "Show Attributes",
     "attributeslib.gui.formula.base": "Base",
     "attributeslib.gui.formula.value": "Value",
+    "attributeslib.gui.formula_header": "Modifier Formula",
     "attributeslib.gui.no_modifiers": "No Modifiers",
 
 	"attribute.name.generic.armor.desc": "Increases physical damage reduction.",

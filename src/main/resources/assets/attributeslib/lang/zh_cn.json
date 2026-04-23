@@ -28,6 +28,8 @@
     "attributeslib.gui.press_shift": "按住Shift查看更多信息。",
     "attributeslib.gui.current": "当前：%s",
     "attributeslib.gui.show_attributes": "显示属性",
+    "attributeslib.gui.formula_header": "调节器公式",
+    "attributeslib.gui.no_modifiers": "无调节器",
 
     "attribute.name.generic.armor.desc": "增加物理伤害减免。",
     "attribute.name.generic.armor_toughness.desc": "降低敌方护甲值减少效果。",
