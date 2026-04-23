@@ -9,6 +9,8 @@ import dev.shadowsoffire.placebo.network.MessageHelper;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.util.ITooltipFlag;
 import net.minecraft.entity.SharedMonsterAttributes;
+import net.minecraft.entity.ai.attributes.IAttribute;
+import net.minecraft.entity.ai.attributes.RangedAttribute;
 import net.minecraft.init.MobEffects;
 import net.minecraft.util.ResourceLocation;
 import net.minecraftforge.common.MinecraftForge;
@@ -53,6 +55,15 @@ public class AttributesLib {
         LOGGER = e.getModLog();
         R = DeferredHelper.create(MODID);
 
+        // 1.12.2 vanilla 里 ATTACK_DAMAGE / KNOCKBACK_RESISTANCE / FOLLOW_RANGE 都没有
+        // setShouldWatch(true)，再加上 EntityLivingBase.onUpdate 只在服务端把装备 modifier
+        // apply 到 AttributeMap，于是客户端拿到的 attackDamage 永远是 base（玩家拿着钻石剑
+        // 属性面板却显示攻击伤害 1 就是这个原因）。这里把它们翻成 watched，服务端就会通过
+        // SPacketEntityProperties 把完整值同步到客户端，属性 GUI 和 tooltip 才对得上。
+        watchVanilla(SharedMonsterAttributes.ATTACK_DAMAGE);
+        watchVanilla(SharedMonsterAttributes.KNOCKBACK_RESISTANCE);
+        watchVanilla(SharedMonsterAttributes.FOLLOW_RANGE);
+
         MinecraftForge.EVENT_BUS.register(new AttributeEvents());
         if (FMLCommonHandler.instance().getSide().isClient()) {
             AttributesLibClient.register();
@@ -86,6 +97,12 @@ public class AttributesLib {
 
     public static ResourceLocation loc(String path) {
         return new ResourceLocation(MODID, path);
+    }
+
+    private static void watchVanilla(IAttribute attr) {
+        if (attr instanceof RangedAttribute) {
+            ((RangedAttribute) attr).setShouldWatch(true);
+        }
     }
 
     @SideOnly(Side.CLIENT)
