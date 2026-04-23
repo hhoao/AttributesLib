@@ -8,10 +8,13 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 /**
  * Exposes {@link ModifiableAttributeInstance#cachedValue} so we can read the previously-computed
  * value while posting {@link AttributeChangedValueEvent}.
+ *
+ * <p>Due to the hook location, this value will always be the value that was computed prior to
+ * application of the latest modifier (the one causing the change).
  */
 @Mixin(ModifiableAttributeInstance.class)
 public interface AttributeInstanceAccessor {
 
     @Accessor("cachedValue")
-    double getCachedValue();
+    double getModifiedValue();
 }
