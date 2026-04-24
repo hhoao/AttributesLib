@@ -229,7 +229,6 @@ public class AttributesLib {
 
     @SubscribeEvent
     public void init(FMLCommonSetupEvent e) {
-        NeoForge.EVENT_BUS.register(ALObjects.MobEffects.KNOWLEDGE.get());
         e.enqueueWork(
                 () -> {
                     MobEffects.BLINDNESS.value().addAttributeModifier(
