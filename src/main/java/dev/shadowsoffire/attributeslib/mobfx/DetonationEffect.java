@@ -161,8 +161,8 @@ import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
+import net.minecraft.world.entity.Entity.RemovalReason;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraft.world.entity.ai.attributes.AttributeMap;
 import net.minecraft.world.phys.AABB;
 
 public class DetonationEffect extends MobEffect {
@@ -172,8 +172,8 @@ public class DetonationEffect extends MobEffect {
     }
 
     @Override
-    public void removeAttributeModifiers(LivingEntity entity, AttributeMap map, int amp) {
-        super.removeAttributeModifiers(entity, map, amp);
+    public void onMobRemoved(LivingEntity entity, int amp, RemovalReason reason) {
+        super.onMobRemoved(entity, amp, reason);
         int ticks = entity.getRemainingFireTicks();
         if (ticks > 0) {
             entity.setRemainingFireTicks(0);

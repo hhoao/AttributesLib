@@ -568,7 +568,7 @@ public class AttributeEvents {
                                 AttributeHelper.BASE_ENTITY_REACH,
                                 () -> "attributeslib:fake_base_range",
                                 0,
-                                Operation.ADDITION));
+                                Operation.ADD_VALUE));
             }
         }
         if (e.getSlotType() == EquipmentSlot.CHEST
@@ -580,7 +580,7 @@ public class AttributeEvents {
                             AttributeHelper.ELYTRA_FLIGHT_UUID,
                             () -> "attributeslib:elytra_item_flight",
                             1,
-                            Operation.ADDITION));
+                            Operation.ADD_VALUE));
         }
     }
 
@@ -627,7 +627,7 @@ public class AttributeEvents {
                                 AttributeHelper.CREATIVE_FLIGHT_UUID,
                                 () -> "attributeslib:creative_flight",
                                 1,
-                                Operation.ADDITION));
+                                Operation.ADD_VALUE));
             }
         } else {
             inst.removeModifier(AttributeHelper.CREATIVE_FLIGHT_UUID);

@@ -155,6 +155,7 @@
 package dev.shadowsoffire.attributeslib.mobfx;
 
 import dev.shadowsoffire.attributeslib.api.ALObjects;
+import dev.shadowsoffire.attributeslib.AttributesLib;
 import net.minecraft.ChatFormatting;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
@@ -165,9 +166,9 @@ public class GrievousEffect extends MobEffect {
     public GrievousEffect() {
         super(MobEffectCategory.HARMFUL, ChatFormatting.DARK_RED.getColor());
         this.addAttributeModifier(
-                ALObjects.Attributes.HEALING_RECEIVED.get(),
-                "e04b0b87-5722-4841-bb87-98c6a4632c6f",
-                -0.4,
-                Operation.ADDITION);
+                ALObjects.Attributes.HEALING_RECEIVED.asHolder(),
+                AttributesLib.loc("grievous/healing_received"),
+                Operation.ADD_VALUE,
+                amp -> -0.4);
     }
 }

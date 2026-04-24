@@ -155,6 +155,7 @@
 package dev.shadowsoffire.attributeslib.mobfx;
 
 import dev.shadowsoffire.attributeslib.api.ALObjects;
+import dev.shadowsoffire.attributeslib.AttributesLib;
 import net.minecraft.ChatFormatting;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectCategory;
@@ -165,9 +166,9 @@ public class VitalityEffect extends MobEffect {
     public VitalityEffect() {
         super(MobEffectCategory.BENEFICIAL, ChatFormatting.RED.getColor());
         this.addAttributeModifier(
-                ALObjects.Attributes.HEALING_RECEIVED.get(),
-                "a232ff72-b070-42f5-bf84-bd220d45d698",
-                +0.2,
-                Operation.ADDITION);
+                ALObjects.Attributes.HEALING_RECEIVED.asHolder(),
+                AttributesLib.loc("vitality/healing_received"),
+                Operation.ADD_VALUE,
+                amp -> 0.2);
     }
 }

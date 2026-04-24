@@ -471,7 +471,7 @@ public class AttributesGui implements Renderable, GuiEventListener {
                 this.addComp(txt, finalTooltip);
             }
 
-            if (inst.getModifiers().stream().anyMatch(modif -> modif.getAmount() != 0)) {
+            if (inst.getModifiers().stream().anyMatch(modif -> modif.amount() != 0)) {
                 this.addComp(CommonComponents.EMPTY, finalTooltip);
                 this.addComp(
                         Component.translatable("attributeslib.gui.modifiers")
@@ -483,7 +483,7 @@ public class AttributesGui implements Renderable, GuiEventListener {
                 for (ModifierSourceType<?> type : ModifierSourceType.getTypes()) {
                     type.extract(
                             this.player,
-                            (modif, source) -> modifiersToSources.put(modif.getId(), source));
+                            (modif, source) -> modifiersToSources.put(modif.id(), source));
                 }
 
                 MutableComponent[] opValues = new MutableComponent[3];
@@ -495,25 +495,25 @@ public class AttributesGui implements Renderable, GuiEventListener {
                             modifiers.stream()
                                     .mapToDouble(AttributeModifier::getAmount)
                                     .reduce(
-                                            op == Operation.MULTIPLY_TOTAL ? 1 : 0,
+                                            op == Operation.ADD_MULTIPLIED_TOTAL ? 1 : 0,
                                             (res, elem) ->
-                                                    op == Operation.MULTIPLY_TOTAL
+                                                    op == Operation.ADD_MULTIPLIED_TOTAL
                                                             ? res * (1 + elem)
                                                             : res + elem);
 
                     modifiers.sort(ModifierSourceType.compareBySource(modifiersToSources));
                     for (AttributeModifier modif : modifiers) {
-                        if (modif.getAmount() != 0) {
+                        if (modif.amount() != 0) {
                             Component comp =
                                     fAttr.toComponent(modif, AttributesLib.getTooltipFlag());
-                            var src = modifiersToSources.get(modif.getId());
+                            var src = modifiersToSources.get(modif.id());
                             finalTooltip.add(
                                     new AttributeModifierComponent(
                                             src, comp, this.font, this.leftPos - 16));
                         }
                     }
                     color = ChatFormatting.GRAY;
-                    double threshold = op == Operation.MULTIPLY_TOTAL ? 1.0005 : 0.0005;
+                    double threshold = op == Operation.ADD_MULTIPLIED_TOTAL ? 1.0005 : 0.0005;
 
                     if (opValue > threshold) {
                         color = ChatFormatting.YELLOW;

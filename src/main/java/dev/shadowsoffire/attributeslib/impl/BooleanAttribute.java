@@ -192,9 +192,9 @@ public class BooleanAttribute extends Attribute implements IFormattableAttribute
         if (op == null) {
             return Component.translatable(
                     "attributeslib.value.boolean." + (value > 0 ? "enabled" : "disabled"));
-        } else if (op == Operation.ADDITION && (int) value == 1) {
+        } else if (op == Operation.ADD_VALUE && (int) value == 1) {
             return Component.translatable("attributeslib.value.boolean.enable");
-        } else if (op == Operation.MULTIPLY_TOTAL && (int) value == -1) {
+        } else if (op == Operation.ADD_MULTIPLIED_TOTAL && (int) value == -1) {
             return Component.translatable("attributeslib.value.boolean.force_disable");
         } else return Component.translatable("attributeslib.value.boolean.invalid");
     }
@@ -202,7 +202,7 @@ public class BooleanAttribute extends Attribute implements IFormattableAttribute
     @Override
     public MutableComponent toComponent(AttributeModifier modif, TooltipFlag flag) {
         Attribute attr = this.ths();
-        double value = modif.getAmount();
+        double value = modif.amount();
 
         MutableComponent comp;
 
@@ -210,7 +210,7 @@ public class BooleanAttribute extends Attribute implements IFormattableAttribute
             comp =
                     Component.translatable(
                                     "attributeslib.modifier.bool",
-                                    this.toValueComponent(modif.getOperation(), value, flag),
+                                    this.toValueComponent(modif.operation(), value, flag),
                                     Component.translatable(attr.getDescriptionId()))
                             .withStyle(ChatFormatting.BLUE);
         } else {
@@ -218,7 +218,7 @@ public class BooleanAttribute extends Attribute implements IFormattableAttribute
             comp =
                     Component.translatable(
                                     "attributeslib.modifier.bool",
-                                    this.toValueComponent(modif.getOperation(), value, flag),
+                                    this.toValueComponent(modif.operation(), value, flag),
                                     Component.translatable(attr.getDescriptionId()))
                             .withStyle(ChatFormatting.RED);
         }

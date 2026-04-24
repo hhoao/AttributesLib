@@ -247,7 +247,7 @@ public class AttributeHelper {
     /** Adds the given modifier to the base value of the attribute. */
     public static void addToBase(
             LivingEntity entity, Attribute attribute, String name, double modifier) {
-        modify(entity, attribute, name, modifier, Operation.ADDITION);
+        modify(entity, attribute, name, modifier, Operation.ADD_VALUE);
     }
 
     /**
@@ -256,7 +256,7 @@ public class AttributeHelper {
      */
     public static void addXTimesNewBase(
             LivingEntity entity, Attribute attribute, String name, double modifier) {
-        modify(entity, attribute, name, modifier, Operation.MULTIPLY_BASE);
+        modify(entity, attribute, name, modifier, Operation.ADD_MULTIPLIED_BASE);
     }
 
     /**
@@ -265,7 +265,7 @@ public class AttributeHelper {
      */
     public static void multiplyFinal(
             LivingEntity entity, Attribute attribute, String name, double modifier) {
-        modify(entity, attribute, name, modifier, Operation.MULTIPLY_TOTAL);
+        modify(entity, attribute, name, modifier, Operation.ADD_MULTIPLIED_TOTAL);
     }
 
     @SuppressWarnings("deprecation")

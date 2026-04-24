@@ -166,16 +166,17 @@ public class BleedingEffect extends MobEffect {
     }
 
     @Override
-    public void applyEffectTick(LivingEntity entity, int amplifier) {
+    public boolean applyEffectTick(LivingEntity entity, int amplifier) {
         entity.hurt(
                 entity.level()
                         .damageSources()
                         .source(ALObjects.DamageTypes.BLEEDING, entity.getLastAttacker()),
                 1.0F + amplifier);
+        return true;
     }
 
     @Override
-    public boolean isDurationEffectTick(int duration, int amplifier) {
+    public boolean shouldApplyEffectTickThisTick(int duration, int amplifier) {
         return duration % 40 == 0;
     }
 }

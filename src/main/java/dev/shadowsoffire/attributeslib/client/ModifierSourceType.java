@@ -249,13 +249,13 @@ public abstract class ModifierSourceType<T> {
         Comparator<AttributeModifier> comp =
                 Comparators.chained(
                         Comparator.comparingInt(
-                                a -> sources.get(a.getId()).getType().getPriority()),
-                        Comparator.comparing(a -> sources.get(a.getId())),
+                                a -> sources.get(a.id()).getType().getPriority()),
+                        Comparator.comparing(a -> sources.get(a.id())),
                         AttributeHelper.modifierComparator());
 
         return (a1, a2) -> {
-            var src1 = sources.get(a1.getId());
-            var src2 = sources.get(a2.getId());
+            var src1 = sources.get(a1.id());
+            var src2 = sources.get(a2.id());
 
             if (src1 != null && src2 != null) return comp.compare(a1, a2);
 

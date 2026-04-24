@@ -321,7 +321,7 @@ public class AttributesLibClient {
                                 attributemodifier.getName(),
                                 effect.getAttributeModifierValue(
                                         effectInst.getAmplifier(), attributemodifier),
-                                attributemodifier.getOperation());
+                                attributemodifier.operation());
                 list.add(new Pair<>(entry.getKey(), attributemodifier1));
             }
         }
@@ -410,7 +410,7 @@ public class AttributesLibClient {
             Collection<AttributeModifier> modifMh = mainhand.get(atr);
             Collection<AttributeModifier> modifOh = offhand.get(atr);
             modifMh.stream()
-                    .filter(a1 -> modifOh.stream().anyMatch(a2 -> a1.getId().equals(a2.getId())))
+                    .filter(a1 -> modifOh.stream().anyMatch(a2 -> a1.id().equals(a2.id())))
                     .forEach(modif -> dualHand.put(atr, modif));
         }
 
@@ -418,7 +418,7 @@ public class AttributesLibClient {
                 .forEach(
                         m -> {
                             mainhand.values().remove(m);
-                            offhand.values().removeIf(m1 -> m1.getId().equals(m.getId()));
+                            offhand.values().removeIf(m1 -> m1.id().equals(m.id()));
                         });
 
         Set<UUID> skips = new HashSet<>();
@@ -459,7 +459,7 @@ public class AttributesLibClient {
             Set<UUID> skips,
             TooltipFlag flag) {
         if (!modifierMap.isEmpty()) {
-            modifierMap.values().removeIf(m -> skips.contains(m.getId()));
+            modifierMap.values().removeIf(m -> skips.contains(m.id()));
 
             tooltip.accept(Component.empty());
             tooltip.accept(
@@ -472,7 +472,7 @@ public class AttributesLibClient {
 
             modifierMap.forEach(
                     (attr, modif) -> {
-                        if (modif.getId().equals(((IFormattableAttribute) attr).getBaseUUID())) {
+                        if (modif.id().equals(((IFormattableAttribute) attr).getBaseUUID())) {
                             baseModifs.put(attr, new BaseModifier(modif, new ArrayList<>()));
                         }
                     });
@@ -489,16 +489,16 @@ public class AttributesLibClient {
                 Attribute attr = entry.getKey();
                 BaseModifier baseModif = entry.getValue();
                 double entityBase = player == null ? 0 : player.getAttributeBaseValue(attr);
-                double base = baseModif.base.getAmount() + entityBase;
+                double base = baseModif.base.amount() + entityBase;
                 final double rawBase = base;
                 double amt = base;
                 double baseBonus = ((IFormattableAttribute) attr).getBonusBaseValue(stack);
                 for (AttributeModifier modif : baseModif.children) {
-                    if (modif.getOperation() == Operation.ADDITION)
-                        base = amt = amt + modif.getAmount();
-                    else if (modif.getOperation() == Operation.MULTIPLY_BASE)
-                        amt += modif.getAmount() * base;
-                    else amt *= 1 + modif.getAmount();
+                    if (modif.operation() == Operation.ADD_VALUE)
+                        base = amt = amt + modif.amount();
+                    else if (modif.operation() == Operation.ADD_MULTIPLIED_BASE)
+                        amt += modif.amount() * base;
+                    else amt *= 1 + modif.amount();
                 }
                 amt += baseBonus;
                 boolean isMerged = !baseModif.children.isEmpty() || baseBonus != 0;
@@ -539,12 +539,12 @@ public class AttributesLibClient {
                     boolean[] merged = new boolean[3];
                     Map<Operation, List<AttributeModifier>> shiftExpands = new HashMap<>();
                     for (AttributeModifier modifier : modifs) {
-                        if (modifier.getAmount() == 0) continue;
-                        if (sums[modifier.getOperation().ordinal()] != 0)
-                            merged[modifier.getOperation().ordinal()] = true;
-                        sums[modifier.getOperation().ordinal()] += modifier.getAmount();
+                        if (modifier.amount() == 0) continue;
+                        if (sums[modifier.operation().ordinal()] != 0)
+                            merged[modifier.operation().ordinal()] = true;
+                        sums[modifier.operation().ordinal()] += modifier.amount();
                         shiftExpands
-                                .computeIfAbsent(modifier.getOperation(), k -> new LinkedList<>())
+                                .computeIfAbsent(modifier.operation(), k -> new LinkedList<>())
                                 .add(modifier);
                     }
                     for (Operation op : Operation.values()) {
@@ -592,7 +592,7 @@ public class AttributesLibClient {
                 } else
                     modifs.forEach(
                             m -> {
-                                if (m.getAmount() != 0)
+                                if (m.amount() != 0)
                                     tooltip.accept(
                                             IFormattableAttribute.toComponent(attr, m, flag));
                             });

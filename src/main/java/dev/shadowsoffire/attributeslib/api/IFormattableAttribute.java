@@ -236,7 +236,7 @@ public interface IFormattableAttribute {
      */
     default MutableComponent toComponent(AttributeModifier modif, TooltipFlag flag) {
         Attribute attr = this.ths();
-        double value = modif.getAmount();
+        double value = modif.amount();
 
         MutableComponent comp;
 
@@ -244,7 +244,7 @@ public interface IFormattableAttribute {
             comp =
                     Component.translatable(
                                     "attributeslib.modifier.plus",
-                                    this.toValueComponent(modif.getOperation(), value, flag),
+                                    this.toValueComponent(modif.operation(), value, flag),
                                     Component.translatable(attr.getDescriptionId()))
                             .withStyle(ChatFormatting.BLUE);
         } else {
@@ -252,7 +252,7 @@ public interface IFormattableAttribute {
             comp =
                     Component.translatable(
                                     "attributeslib.modifier.take",
-                                    this.toValueComponent(modif.getOperation(), value, flag),
+                                    this.toValueComponent(modif.operation(), value, flag),
                                     Component.translatable(attr.getDescriptionId()))
                             .withStyle(ChatFormatting.RED);
         }
@@ -277,10 +277,10 @@ public interface IFormattableAttribute {
             // Advanced Tooltips show the underlying operation and the "true" value. We offset
             // MULTIPLY_TOTAL by 1 due to how the operation is calculated.
             double advValue =
-                    (modif.getOperation() == Operation.MULTIPLY_TOTAL ? 1 : 0) + modif.getAmount();
+                    (modif.operation() == Operation.ADD_MULTIPLIED_TOTAL ? 1 : 0) + modif.amount();
             String valueStr = ItemStack.ATTRIBUTE_MODIFIER_FORMAT.format(advValue);
             String txt =
-                    switch (modif.getOperation()) {
+                    switch (modif.operation()) {
                         case ADDITION ->
                                 advValue > 0
                                         ? String.format("[+%s]", valueStr)
@@ -432,6 +432,6 @@ public interface IFormattableAttribute {
     }
 
     static boolean isNullOrAddition(@Nullable Operation op) {
-        return op == null || op == Operation.ADDITION;
+        return op == null || op == Operation.ADD_VALUE;
     }
 }
