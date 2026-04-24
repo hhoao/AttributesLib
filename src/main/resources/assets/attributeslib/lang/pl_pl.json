@@ -350,9 +350,9 @@
     "block.apotheosis.prismatic_altar": "Ołtarz Morza",
 
     "comment_id": "/Vanilla",
-	"generic.reachDistance": "Osiągnij odległość",
-	"forge.swimSpeed": "Prędkość pływania",
-	"forge.entity_gravity": "Grawitacja",
+	"attribute.name.player.entity_interaction_range": "Osiągnij odległość",
+	"neoforge.swim_speed": "Prędkość pływania",
+	"attribute.name.generic.gravity": "Grawitacja",
     "block.reeds": "Trzcina cukrowa",
     "potion.potency.3": "4",
     "enchantment.level.11": "11",
@@ -559,6 +559,5 @@
 	"death.attack.apotheosis.bleeding": "%s wykrwawił się.",
 	
 	"comment_id": "/Misc",
-	"generic.reachDistance": "Osiągnij odległość",
 	"info.apoth.modifier_disabled": "Ten modyfikator jest wyłączony"
 }

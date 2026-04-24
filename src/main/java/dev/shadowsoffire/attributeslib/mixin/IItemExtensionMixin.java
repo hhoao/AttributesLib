@@ -162,7 +162,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 
 @Mixin(IItemExtension.class)
-public interface IForgeItemMixin {
+public interface IItemExtensionMixin {
 
     /**
      * This mixin overwrites {@link IItemExtension#canElytraFly(ItemStack, LivingEntity)} to read the

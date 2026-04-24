@@ -12,7 +12,7 @@
     "CombatRulesMixin",
     "EntityMixin",
     "GameTypeMixin",
-    "IForgeItemMixin",
+    "IItemExtensionMixin",
     "ItemStackMixin",
     "LivingEntityMixin",
     "NearestAttackableTargetGoalMixin",

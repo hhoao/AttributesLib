@@ -528,9 +528,9 @@
     "enchantment.apotheosis.endless_quiver.desc": "Hace que todas las flechas sean infinitas.",
 
     "comment_id": "/Vanilla",
-    "generic.reachDistance": "Distancia de Alcance",
-    "forge.swimSpeed": "Velocidad de Nado",
-    "forge.entity_gravity": "Gravedad",
+    "attribute.name.player.entity_interaction_range": "Distancia de Alcance",
+    "neoforge.swim_speed": "Velocidad de Nado",
+    "attribute.name.generic.gravity": "Gravedad",
     "block.reeds": "Caña de Azúcar",
     "potion.potency.3": "IV",
     "enchantment.level.11": "XI",
@@ -779,7 +779,6 @@
     "death.attack.apotheosis.bleeding": "%s murió desangrado.",
     
     "comment_id": "/Misc",
-    "generic.reachDistance": "Distancia de alcance",
     "info.apoth.modifier_disabled": "Este modificador está deshabilitado",
     "itemGroup.apotheosis": "Apotheosis",
     

@@ -180,7 +180,7 @@ public class AttributeHelper {
     /** ID of the base modifier for Attack Speed */
     public static final ResourceLocation BASE_ATTACK_SPEED = ItemAccess.getBaseAS();
 
-    /** ID of the base modifier for Attack Range */
+    /** ID of the base modifier for entity interaction range. */
     public static final ResourceLocation BASE_ENTITY_REACH =
             AttributesLib.loc("fake_base_range");
 

@@ -446,9 +446,9 @@
     "block.apotheosis.prismatic_altar": "바다의 제단",
 
     "comment_id": "/Vanilla",
-	"generic.reachDistance": "도달 범위",
-	"forge.swimSpeed": "수영 속도",
-	"forge.entity_gravity": "중력",
+	"attribute.name.player.entity_interaction_range": "도달 범위",
+	"neoforge.swim_speed": "수영 속도",
+	"attribute.name.generic.gravity": "중력",
     "block.reeds": "사탕 수수",
     "potion.potency.3": "IV",
     "enchantment.level.11": "XI",
@@ -666,7 +666,6 @@
 	"death.attack.apotheosis.bleeding": "%s이(가) 출혈로 죽었습니다.",
 	
 	"comment_id": "/Misc",
-	"generic.reachDistance": "도달 범위",
 	"info.apoth.modifier_disabled": "이 옵션은 비활성회되었습니다.",
 	"itemGroup.apotheosis": "Apotheosis"
 }

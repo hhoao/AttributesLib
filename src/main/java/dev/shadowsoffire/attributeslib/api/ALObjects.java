@@ -298,7 +298,7 @@ public class ALObjects {
                                         .setSyncable(true));
 
         /**
-         * Experience mulitplier, from killing mobs or breaking ores. Base value = (1.0) = 100% xp
+         * Experience multiplier, from killing mobs or breaking ores. Base value = (1.0) = 100% xp
          * gained.
          */
         public static final RegistryObject<Attribute> EXPERIENCE_GAINED =
@@ -434,7 +434,7 @@ public class ALObjects {
 
         /**
          * Ancient Knowledge multiplies experience dropped by mobs by level * {@link
-         * MobFxLib#knowledgeMult}.<br>
+         * AttributesLib#knowledgeMult}.<br>
          * The multiplier is configurable.
          */
         public static final RegistryObject<KnowledgeEffect> KNOWLEDGE =

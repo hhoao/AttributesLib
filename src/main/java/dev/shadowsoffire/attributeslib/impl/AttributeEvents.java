@@ -509,9 +509,9 @@ public class AttributeEvents {
         }
     }
 
-    /** Fix for https://github.com/MinecraftForge/MinecraftForge/issues/9370 */
+    /** Keeps piercing arrows from repeatedly hitting the same entity after canceled impacts. */
     @SubscribeEvent(priority = EventPriority.LOWEST, receiveCanceled = true)
-    public void fixMCF9370(ProjectileImpactEvent e) {
+    public void fixPiercingArrowHitState(ProjectileImpactEvent e) {
         if (e.isCanceled()) {
             Entity target =
                     e.getRayTraceResult() instanceof EntityHitResult entRes

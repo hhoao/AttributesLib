@@ -168,7 +168,7 @@ import repack.evalex.Expression;
 public class ALConfig {
 
     public static final String[] DEFAULT_BLOCKED_ATTRIBUTES = {
-        "forge:nametag_distance",
+        "neoforge:nametag_distance",
         "attributeslib:creative_flight",
         "attributeslib:elytra_flight",
         "attributeslib:ghost_health"

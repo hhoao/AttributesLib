@@ -195,8 +195,8 @@ public class AttributesLib {
 
     /**
      * Static record of {@link Player#getAttackStrengthScale(float)} for use in damage events.<br>
-     * Recorded in the {@link PlayerAttackEvent} and valid for the entire chain, when a player
-     * attacks.
+     * Recorded in the {@link net.neoforged.neoforge.event.entity.player.AttackEntityEvent} and
+     * valid for the entire chain, when a player attacks.
      */
     public static float localAtkStrength = 1;
 
