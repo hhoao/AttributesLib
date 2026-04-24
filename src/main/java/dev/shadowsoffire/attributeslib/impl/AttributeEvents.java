@@ -234,7 +234,7 @@ public class AttributeEvents {
     @SubscribeEvent
     public void drawSpeed(LivingEntityUseItemEvent.Tick e) {
         if (e.getEntity() instanceof Player player) {
-            double t = player.getAttribute(ALObjects.Attributes.DRAW_SPEED.get()).getValue() - 1;
+            double t = player.getAttribute(ALObjects.Attributes.DRAW_SPEED.asHolder()).getValue() - 1;
             if (t == 0 || !this.canBenefitFromDrawSpeed(e.getItem())) return;
 
             // Handle negative draw speed.
@@ -266,13 +266,13 @@ public class AttributeEvents {
         if (e.getSource().getDirectEntity() instanceof LivingEntity attacker
                 && AttributesUtil.isPhysicalDamage(e.getSource())) {
             float lifesteal =
-                    (float) attacker.getAttributeValue(ALObjects.Attributes.LIFE_STEAL.get());
+                    (float) attacker.getAttributeValue(ALObjects.Attributes.LIFE_STEAL.asHolder());
             float dmg = Math.min(e.getAmount(), e.getEntity().getHealth());
             if (lifesteal > 0.001) {
                 attacker.heal(dmg * lifesteal);
             }
             float overheal =
-                    (float) attacker.getAttributeValue(ALObjects.Attributes.OVERHEAL.get());
+                    (float) attacker.getAttributeValue(ALObjects.Attributes.OVERHEAL.asHolder());
             float maxOverheal = attacker.getMaxHealth() * 0.5F;
             if (overheal > 0 && attacker.getAbsorptionAmount() < maxOverheal) {
                 attacker.setAbsorptionAmount(
@@ -306,11 +306,11 @@ public class AttributeEvents {
             float hpDmg =
                     (float)
                             attacker.getAttributeValue(
-                                    ALObjects.Attributes.CURRENT_HP_DAMAGE.get());
+                                    ALObjects.Attributes.CURRENT_HP_DAMAGE.asHolder());
             float fireDmg =
-                    (float) attacker.getAttributeValue(ALObjects.Attributes.FIRE_DAMAGE.get());
+                    (float) attacker.getAttributeValue(ALObjects.Attributes.FIRE_DAMAGE.asHolder());
             float coldDmg =
-                    (float) attacker.getAttributeValue(ALObjects.Attributes.COLD_DAMAGE.get());
+                    (float) attacker.getAttributeValue(ALObjects.Attributes.COLD_DAMAGE.asHolder());
             LivingEntity target = e.getEntity();
             int time = target.invulnerableTime;
             target.invulnerableTime = 0;
@@ -355,8 +355,8 @@ public class AttributeEvents {
         LivingEntity attacker = e.getSource().getEntity() instanceof LivingEntity le ? le : null;
         if (attacker == null) return;
 
-        double critChance = attacker.getAttributeValue(ALObjects.Attributes.CRIT_CHANCE.get());
-        float critDmg = (float) attacker.getAttributeValue(ALObjects.Attributes.CRIT_DAMAGE.get());
+        double critChance = attacker.getAttributeValue(ALObjects.Attributes.CRIT_CHANCE.asHolder());
+        float critDmg = (float) attacker.getAttributeValue(ALObjects.Attributes.CRIT_DAMAGE.asHolder());
 
         RandomSource rand = e.getEntity().getRandom();
 
@@ -386,7 +386,7 @@ public class AttributeEvents {
     @SubscribeEvent(priority = EventPriority.HIGH)
     public void vanillaCritDmg(CriticalHitEvent e) {
         float critDmg =
-                (float) e.getEntity().getAttributeValue(ALObjects.Attributes.CRIT_DAMAGE.get());
+                (float) e.getEntity().getAttributeValue(ALObjects.Attributes.CRIT_DAMAGE.asHolder());
         if (e.isVanillaCritical()) {
             e.setDamageModifier(Math.max(e.getDamageModifier(), critDmg));
         }
@@ -400,7 +400,7 @@ public class AttributeEvents {
                         * (float)
                                 e.getEntity()
                                         .getAttributeValue(
-                                                ALObjects.Attributes.MINING_SPEED.get()));
+                                                ALObjects.Attributes.MINING_SPEED.asHolder()));
     }
 
     /**
@@ -410,7 +410,7 @@ public class AttributeEvents {
     @SubscribeEvent(priority = EventPriority.HIGH)
     public void blockBreak(BreakEvent e) {
         double xpMult =
-                e.getPlayer().getAttributeValue(ALObjects.Attributes.EXPERIENCE_GAINED.get());
+                e.getPlayer().getAttributeValue(ALObjects.Attributes.EXPERIENCE_GAINED.asHolder());
         e.setExpToDrop((int) (e.getExpToDrop() * xpMult));
     }
 
@@ -420,7 +420,7 @@ public class AttributeEvents {
         if (player == null) return;
         double xpMult =
                 e.getAttackingPlayer()
-                        .getAttributeValue(ALObjects.Attributes.EXPERIENCE_GAINED.get());
+                        .getAttributeValue(ALObjects.Attributes.EXPERIENCE_GAINED.asHolder());
         e.setDroppedExperience((int) (e.getDroppedExperience() * xpMult));
     }
 
@@ -430,7 +430,7 @@ public class AttributeEvents {
         float factor =
                 (float)
                         e.getEntity()
-                                .getAttributeValue(ALObjects.Attributes.HEALING_RECEIVED.get());
+                                .getAttributeValue(ALObjects.Attributes.HEALING_RECEIVED.asHolder());
         e.setAmount(e.getAmount() * factor);
         if (e.getAmount() <= 0) e.setCanceled(true);
     }
@@ -444,12 +444,12 @@ public class AttributeEvents {
             if (arrow.getOwner() instanceof LivingEntity le) {
                 arrow.setBaseDamage(
                         arrow.getBaseDamage()
-                                * le.getAttributeValue(ALObjects.Attributes.ARROW_DAMAGE.get()));
+                                * le.getAttributeValue(ALObjects.Attributes.ARROW_DAMAGE.asHolder()));
                 arrow.setDeltaMovement(
                         arrow.getDeltaMovement()
                                 .scale(
                                         le.getAttributeValue(
-                                                ALObjects.Attributes.ARROW_VELOCITY.get())));
+                                                ALObjects.Attributes.ARROW_VELOCITY.asHolder())));
             }
             arrow.getPersistentData().putBoolean("attributeslib.arrow.done", true);
         }
@@ -573,9 +573,9 @@ public class AttributeEvents {
         }
         if (e.getSlotType() == EquipmentSlot.CHEST
                 && e.getItemStack().getItem() instanceof ElytraItem
-                && !e.getModifiers().containsKey(ALObjects.Attributes.ELYTRA_FLIGHT.get())) {
+                && !e.getModifiers().containsKey(ALObjects.Attributes.ELYTRA_FLIGHT.asHolder())) {
             e.addModifier(
-                    ALObjects.Attributes.ELYTRA_FLIGHT.get(),
+                    ALObjects.Attributes.ELYTRA_FLIGHT.asHolder(),
                     new AttributeModifier(
                             AttributeHelper.ELYTRA_FLIGHT_UUID,
                             () -> "attributeslib:elytra_item_flight",
@@ -595,7 +595,7 @@ public class AttributeEvents {
         // AttributesLib.LOGGER.info("Attribute {} changed value from {} to {}!",
         // e.getAttributeInstance().getAttribute().getDescriptionId(), e.getOldValue(),
         // e.getNewValue());
-        if (e.getAttributeInstance().getAttribute() == ALObjects.Attributes.CREATIVE_FLIGHT.get()
+        if (e.getAttributeInstance().getAttribute() == ALObjects.Attributes.CREATIVE_FLIGHT.asHolder()
                 && e.getEntity() instanceof ServerPlayer player) {
 
             boolean changed = false;
@@ -619,7 +619,7 @@ public class AttributeEvents {
     }
 
     public static void applyCreativeFlightModifier(Player player, GameType newType) {
-        AttributeInstance inst = player.getAttribute(ALObjects.Attributes.CREATIVE_FLIGHT.get());
+        AttributeInstance inst = player.getAttribute(ALObjects.Attributes.CREATIVE_FLIGHT.asHolder());
         if (newType == GameType.CREATIVE || newType == GameType.SPECTATOR) {
             if (inst.getModifier(AttributeHelper.CREATIVE_FLIGHT_UUID) == null) {
                 inst.addTransientModifier(
@@ -669,7 +669,7 @@ public class AttributeEvents {
      * @return True if the target may dodge, false otherwise.
      */
     public static boolean isDodging(LivingEntity target) {
-        double chance = target.getAttributeValue(ALObjects.Attributes.DODGE_CHANCE.get());
+        double chance = target.getAttributeValue(ALObjects.Attributes.DODGE_CHANCE.asHolder());
         dodgeRand.setSeed(computeDodgeSeed(target));
         return dodgeRand.nextFloat() <= chance;
     }
