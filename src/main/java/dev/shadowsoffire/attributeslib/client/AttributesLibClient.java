@@ -204,9 +204,10 @@ import net.minecraft.world.item.PotionItem;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.item.component.ItemAttributeModifiers;
+import net.minecraft.world.item.component.TooltipDisplay;
+import net.neoforged.neoforge.client.event.AddClientReloadListenersEvent;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.GatherEffectScreenTooltipsEvent;
-import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
 import net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent;
 import net.neoforged.neoforge.client.event.ScreenEvent;
 import net.neoforged.neoforge.common.NeoForge;
@@ -228,8 +229,8 @@ public class AttributesLibClient {
         }
     }
 
-    public void clientReload(RegisterClientReloadListenersEvent e) {
-        e.registerReloadListener(ALConfig.makeReloader());
+    public void clientReload(AddClientReloadListenersEvent e) {
+        e.addListener(AttributesLib.loc("config"), ALConfig.makeReloader());
     }
 
     public void particleFactories(RegisterParticleProvidersEvent e) {
@@ -258,8 +259,8 @@ public class AttributesLibClient {
             it.next();
             it.remove();
         }
-        if (stack.getOrDefault(DataComponents.ATTRIBUTE_MODIFIERS, ItemAttributeModifiers.EMPTY)
-                .showInTooltip()) {
+        if (stack.getOrDefault(DataComponents.TOOLTIP_DISPLAY, TooltipDisplay.DEFAULT)
+                .shows(DataComponents.ATTRIBUTE_MODIFIERS)) {
             applyModifierTooltips(e.getEntity(), stack, it::add, e.getFlags());
         }
         NeoForge.EVENT_BUS.post(

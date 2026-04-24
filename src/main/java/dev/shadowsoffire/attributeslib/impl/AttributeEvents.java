@@ -188,13 +188,13 @@ import net.minecraft.world.entity.ai.goal.MeleeAttackGoal;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.entity.projectile.AbstractArrow;
 import net.minecraft.world.entity.projectile.Projectile;
-import net.minecraft.world.item.ElytraItem;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.item.ProjectileWeaponItem;
 import net.minecraft.world.item.TridentItem;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.phys.EntityHitResult;
-import net.neoforged.neoforge.event.AddReloadListenerEvent;
+import net.neoforged.neoforge.event.AddServerReloadListenersEvent;
 import net.neoforged.neoforge.event.ItemAttributeModifierEvent;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.entity.ProjectileImpactEvent;
@@ -323,7 +323,7 @@ public class AttributeEvents {
                         AttributesLib.localAtkStrength * coldDmg);
                 target.addEffect(
                         new MobEffectInstance(
-                                MobEffects.MOVEMENT_SLOWDOWN,
+                                MobEffects.SLOWNESS,
                                 (int) (15 * coldDmg),
                                 Mth.floor(coldDmg / 5)));
             }
@@ -430,10 +430,11 @@ public class AttributeEvents {
     public void arrow(EntityJoinLevelEvent e) {
         if (e.getEntity() instanceof AbstractArrow arrow) {
             if (arrow.level().isClientSide
-                    || arrow.getPersistentData().getBoolean("attributeslib.arrow.done")) return;
+                    || arrow.getPersistentData().getBooleanOr("attributeslib.arrow.done", false))
+                return;
             if (arrow.getOwner() instanceof LivingEntity le) {
                 arrow.setBaseDamage(
-                        arrow.getBaseDamage()
+                        arrow.baseDamage
                                 * le.getAttributeValue(ALObjects.Attributes.ARROW_DAMAGE.asHolder()));
                 arrow.setDeltaMovement(
                         arrow.getDeltaMovement()
@@ -554,7 +555,7 @@ public class AttributeEvents {
                                         entry.slot());
                             }
                         });
-        if (e.getItemStack().getItem() instanceof ElytraItem
+        if (e.getItemStack().is(Items.ELYTRA)
                 && e.getModifiers().stream()
                         .noneMatch(
                                 entry ->
@@ -621,8 +622,8 @@ public class AttributeEvents {
     }
 
     @SubscribeEvent
-    public void reloads(AddReloadListenerEvent e) {
-        e.addListener(ALConfig.makeReloader());
+    public void reloads(AddServerReloadListenersEvent e) {
+        e.addListener(AttributesLib.loc("config"), ALConfig.makeReloader());
     }
 
     /**

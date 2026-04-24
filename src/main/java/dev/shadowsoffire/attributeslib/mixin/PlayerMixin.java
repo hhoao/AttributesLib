@@ -158,13 +158,12 @@ import com.mojang.authlib.GameProfile;
 import dev.shadowsoffire.attributeslib.api.ALObjects.Attributes;
 import dev.shadowsoffire.attributeslib.util.IEntityOwned;
 import dev.shadowsoffire.attributeslib.util.IFlying;
-import net.minecraft.core.BlockPos;
-import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Abilities;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
+import net.minecraft.world.level.storage.ValueInput;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -191,12 +190,10 @@ public class PlayerMixin implements IFlying {
      */
     @Inject(
             at = @At(value = "TAIL"),
-            method =
-                    "<init>(Lnet/minecraft/world/level/Level;Lnet/minecraft/core/BlockPos;FLcom/mojang/authlib/GameProfile;)V",
+            method = "<init>(Lnet/minecraft/world/level/Level;Lcom/mojang/authlib/GameProfile;)V",
             require = 1,
             remap = false)
-    public void apoth_ownedAbilities(
-            Level level, BlockPos pos, float yRot, GameProfile profile, CallbackInfo ci) {
+    public void apoth_ownedAbilities(Level level, GameProfile profile, CallbackInfo ci) {
         ((IEntityOwned) abilities).setOwner((LivingEntity) (Object) this);
     }
 
@@ -208,9 +205,9 @@ public class PlayerMixin implements IFlying {
      */
     @Inject(
             at = @At(value = "TAIL"),
-            method = "readAdditionalSaveData(Lnet/minecraft/nbt/CompoundTag;)V",
+            method = "readAdditionalSaveData(Lnet/minecraft/world/level/storage/ValueInput;)V",
             require = 1)
-    public void apoth_cacheFlying(CompoundTag tag, CallbackInfo ci) {
+    public void apoth_cacheFlying(ValueInput input, CallbackInfo ci) {
         if (abilities.flying) {
             markFlying();
         }
@@ -233,11 +230,11 @@ public class PlayerMixin implements IFlying {
                     @At(
                             value = "INVOKE",
                             target =
-                                    "Lnet/minecraft/world/entity/LivingEntity;hurt(Lnet/minecraft/world/damagesource/DamageSource;F)Z",
+                                    "Lnet/minecraft/world/entity/LivingEntity;hurtOrSimulate(Lnet/minecraft/world/damagesource/DamageSource;F)Z",
                             ordinal = 0),
             method = "attack(Lnet/minecraft/world/entity/Entity;)V")
     private boolean apoth_handleKilledByAuxDmg(LivingEntity target, DamageSource src, float dmg) {
-        boolean res = target.hurt(src, dmg);
-        return res || target.getPersistentData().getBoolean("apoth.killed_by_aux_dmg");
+        boolean res = target.hurtOrSimulate(src, dmg);
+        return res || target.getPersistentData().getBooleanOr("apoth.killed_by_aux_dmg", false);
     }
 }

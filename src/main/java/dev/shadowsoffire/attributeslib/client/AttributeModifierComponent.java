@@ -159,12 +159,11 @@ import java.util.List;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
-import net.minecraft.client.renderer.MultiBufferSource.BufferSource;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.network.chat.FormattedText;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
 import org.jetbrains.annotations.Nullable;
-import org.joml.Matrix4f;
 
 public class AttributeModifierComponent implements ClientTooltipComponent {
 
@@ -181,7 +180,7 @@ public class AttributeModifierComponent implements ClientTooltipComponent {
     }
 
     @Override
-    public int getHeight() {
+    public int getHeight(Font font) {
         return this.text.size() * 10;
     }
 
@@ -191,40 +190,27 @@ public class AttributeModifierComponent implements ClientTooltipComponent {
     }
 
     @Override
-    public void renderImage(Font font, int x, int y, GuiGraphics gfx) {
-        gfx.blit(TEXTURE, x, y, 0, this.source == null ? 9 : 0, 0, 9, 9, 18, 9);
+    public void renderImage(Font font, int x, int y, int width, int height, GuiGraphics gfx) {
+        gfx.blit(
+                RenderPipelines.GUI_TEXTURED,
+                TEXTURE,
+                x,
+                y,
+                0,
+                this.source == null ? 9 : 0,
+                9,
+                9,
+                18,
+                9);
         if (this.source == null) return;
         this.source.render(gfx, font, x, y);
     }
 
     @Override
-    public void renderText(
-            Font font, int pX, int pY, Matrix4f pMatrix4f, BufferSource pBufferSource) {
-        var line = this.text.get(0);
-        font.drawInBatch(
-                line,
-                pX + 12,
-                pY,
-                -1,
-                true,
-                pMatrix4f,
-                pBufferSource,
-                Font.DisplayMode.NORMAL,
-                0,
-                15728880);
+    public void renderText(GuiGraphics gfx, Font font, int pX, int pY) {
+        gfx.drawString(font, this.text.get(0), pX + 12, pY, -1, true);
         for (int i = 1; i < this.text.size(); i++) {
-            line = this.text.get(i);
-            font.drawInBatch(
-                    line,
-                    pX,
-                    pY + i * (font.lineHeight + 1),
-                    -1,
-                    true,
-                    pMatrix4f,
-                    pBufferSource,
-                    Font.DisplayMode.NORMAL,
-                    0,
-                    15728880);
+            gfx.drawString(font, this.text.get(i), pX, pY + i * (font.lineHeight + 1), -1, true);
         }
     }
 }

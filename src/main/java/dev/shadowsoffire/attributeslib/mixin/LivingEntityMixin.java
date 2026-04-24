@@ -176,6 +176,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(LivingEntity.class)
 public abstract class LivingEntityMixin extends Entity {
@@ -259,9 +260,20 @@ public abstract class LivingEntityMixin extends Entity {
     @Shadow
     public abstract MobEffectInstance getEffect(Holder<MobEffect> ef);
 
+    @Shadow
+    public abstract double getAttributeValue(Holder<net.minecraft.world.entity.ai.attributes.Attribute> attribute);
+
     @SuppressWarnings({"unchecked", "rawtypes"})
     private static Holder<MobEffect> sunderingEffect() {
         return (Holder) ALObjects.MobEffects.SUNDERING.asHolder();
+    }
+
+    @Inject(method = "canGlide()Z", at = @At("RETURN"), cancellable = true)
+    private void attributeslib_requireElytraFlightAttribute(CallbackInfoReturnable<Boolean> cir) {
+        if (cir.getReturnValue()
+                && this.getAttributeValue(ALObjects.Attributes.ELYTRA_FLIGHT.asHolder()) <= 0) {
+            cir.setReturnValue(false);
+        }
     }
 
     @Redirect(

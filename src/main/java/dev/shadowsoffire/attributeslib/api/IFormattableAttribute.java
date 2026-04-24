@@ -160,6 +160,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.network.chat.TextColor;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
@@ -168,13 +169,14 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.component.ItemAttributeModifiers;
+import net.neoforged.neoforge.common.extensions.IAttributeExtension;
 import org.jetbrains.annotations.Nullable;
 
 /**
  * A Formattable Attribute is one which elects to have control over its tooltip representation.<br>
  * This interface also serves as the primary means of displaying attribute modifiers.
  */
-public interface IFormattableAttribute {
+public interface IFormattableAttribute extends IAttributeExtension {
 
     /**
      * Converts the value of an attribute modifier to the value that will be displayed.
@@ -410,6 +412,11 @@ public interface IFormattableAttribute {
 
     default Attribute ths() {
         return (Attribute) this;
+    }
+
+    @Override
+    default TextColor getMergedStyle(boolean isPositive) {
+        return this.ths().getMergedStyle(isPositive);
     }
 
     /** Helper method to invoke {@link #toComponent(AttributeModifier, TooltipFlag)}. */

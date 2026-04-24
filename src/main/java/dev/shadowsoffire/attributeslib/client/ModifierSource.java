@@ -154,19 +154,18 @@
 
 package dev.shadowsoffire.attributeslib.client;
 
-import com.mojang.blaze3d.vertex.PoseStack;
 import dev.shadowsoffire.attributeslib.util.Comparators;
 import java.util.Comparator;
-import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
+import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiGraphics;
-import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.resources.MobEffectTextureManager;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.ItemStack;
+import org.joml.Matrix3x2fStack;
 
 /**
  * A Modifier Source is a container object around any potential Attribute Modifier Source.<br>
@@ -220,13 +219,13 @@ public abstract class ModifierSource<T> implements Comparable<ModifierSource<T>>
 
         @Override
         public void render(GuiGraphics gfx, Font font, int x, int y) {
-            PoseStack pose = gfx.pose();
-            pose.pushPose();
+            Matrix3x2fStack pose = gfx.pose();
+            pose.pushMatrix();
             float scale = 0.5F;
-            pose.scale(scale, scale, 1);
-            pose.translate(1 + x / scale, 1 + y / scale, 0);
+            pose.scale(scale, scale);
+            pose.translate(1 + x / scale, 1 + y / scale);
             gfx.renderFakeItem(this.data, 0, 0);
-            pose.popPose();
+            pose.popMatrix();
         }
     }
 
@@ -244,7 +243,6 @@ public abstract class ModifierSource<T> implements Comparable<ModifierSource<T>>
 
         @Override
         public void render(GuiGraphics gfx, Font font, int x, int y) {
-            MobEffectTextureManager texMgr = Minecraft.getInstance().getMobEffectTextures();
             // We don't have an EffectRenderingInventoryScreen, so we'll just hope the texture is
             // good enough.
             // var renderer =
@@ -254,14 +252,13 @@ public abstract class ModifierSource<T> implements Comparable<ModifierSource<T>>
             // i += pYOffset;
             // continue;
             // }
-            TextureAtlasSprite sprite = texMgr.get(this.data.getEffect());
             float scale = 0.5F;
-            PoseStack stack = gfx.pose();
-            stack.pushPose();
-            stack.scale(scale, scale, 1);
-            stack.translate(x / scale, y / scale, 0);
-            gfx.blit(0, 0, 0, 18, 18, sprite);
-            stack.popPose();
+            Matrix3x2fStack stack = gfx.pose();
+            stack.pushMatrix();
+            stack.scale(scale, scale);
+            stack.translate(x / scale, y / scale);
+            gfx.blitSprite(RenderPipelines.GUI_TEXTURED, Gui.getMobEffectSprite(this.data.getEffect()), 0, 0, 18, 18);
+            stack.popMatrix();
         }
     }
 }

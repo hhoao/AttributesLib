@@ -154,8 +154,6 @@
 
 package dev.shadowsoffire.attributeslib.client;
 
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.PoseStack;
 import dev.shadowsoffire.attributeslib.ALConfig;
 import dev.shadowsoffire.attributeslib.AttributesLib;
 import dev.shadowsoffire.attributeslib.api.ALObjects;
@@ -181,7 +179,7 @@ import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
 import net.minecraft.client.gui.screens.inventory.tooltip.DefaultTooltipPositioner;
-import net.minecraft.client.renderer.GameRenderer;
+import net.minecraft.client.renderer.RenderPipelines;
 import net.minecraft.client.resources.language.I18n;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.locale.Language;
@@ -202,6 +200,7 @@ import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.component.ItemAttributeModifiers;
+import org.joml.Matrix3x2fStack;
 
 public class AttributesGui implements Renderable, GuiEventListener {
 
@@ -260,6 +259,7 @@ public class AttributesGui implements Renderable, GuiEventListener {
                     public void renderWidget(
                             GuiGraphics gfx, int pMouseX, int pMouseY, float pPartialTick) {
                         gfx.blit(
+                                RenderPipelines.GUI_TEXTURED,
                                 TEXTURES,
                                 this.getX(),
                                 this.getY(),
@@ -296,8 +296,8 @@ public class AttributesGui implements Renderable, GuiEventListener {
 
     public void toggleVisibility() {
         this.open = !this.open;
-        if (this.open && this.parent.getRecipeBookComponent().isVisible()) {
-            this.parent.getRecipeBookComponent().toggleVisibility();
+        if (this.open && this.parent.recipeBookComponent.isVisible()) {
+            this.parent.recipeBookComponent.toggleVisibility();
         }
         this.hideUnchangedBtn.visible = this.open;
 
@@ -334,27 +334,27 @@ public class AttributesGui implements Renderable, GuiEventListener {
     public void render(GuiGraphics gfx, int mouseX, int mouseY, float partialTicks) {
         this.toggleBtn.setX(this.parent.getGuiLeft() + 63);
         this.toggleBtn.setY(this.parent.getGuiTop() + 10);
-        if (this.parent.getRecipeBookComponent().isVisible()) this.open = false;
+        if (this.parent.recipeBookComponent.isVisible()) this.open = false;
         wasOpen = this.open;
         if (!this.open) return;
 
         this.refreshData();
 
-        RenderSystem.setShader(GameRenderer::getPositionTexShader);
-        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-        RenderSystem.setShaderTexture(0, TEXTURES);
         int left = this.leftPos;
         int top = this.topPos;
-        gfx.blit(TEXTURES, left, top, 0, 0, WIDTH, 166);
+        gfx.blit(RenderPipelines.GUI_TEXTURED, TEXTURES, left, top, 0, 0, WIDTH, 166, 256, 256);
         int scrollbarPos = (int) (117 * scrollOffset);
         gfx.blit(
+                RenderPipelines.GUI_TEXTURED,
                 TEXTURES,
                 left + 111,
                 top + 16 + scrollbarPos,
                 244,
                 this.isScrollBarActive() ? 0 : 15,
                 12,
-                15);
+                15,
+                256,
+                256);
         int idx = this.startIndex;
         while (idx < this.startIndex + MAX_ENTRIES && idx < this.data.size()) {
             this.renderEntry(
@@ -570,7 +570,7 @@ public class AttributesGui implements Renderable, GuiEventListener {
                         finalTooltip);
             }
 
-            gfx.renderTooltipInternal(
+            gfx.renderTooltip(
                     font,
                     finalTooltip,
                     this.leftPos
@@ -580,7 +580,8 @@ public class AttributesGui implements Renderable, GuiEventListener {
                                     .max(Integer::compare)
                                     .get(),
                     mouseY,
-                    DefaultTooltipPositioner.INSTANCE);
+                    DefaultTooltipPositioner.INSTANCE,
+                    null);
         }
     }
 
@@ -600,7 +601,17 @@ public class AttributesGui implements Renderable, GuiEventListener {
     private void renderEntry(
             GuiGraphics gfx, AttributeInstance inst, int x, int y, int mouseX, int mouseY) {
         boolean hover = this.getHoveredSlot(mouseX, mouseY) == inst;
-        gfx.blit(TEXTURES, x, y, 142, hover ? ENTRY_HEIGHT : 0, 100, ENTRY_HEIGHT);
+        gfx.blit(
+                RenderPipelines.GUI_TEXTURED,
+                TEXTURES,
+                x,
+                y,
+                142,
+                hover ? ENTRY_HEIGHT : 0,
+                100,
+                ENTRY_HEIGHT,
+                256,
+                256);
 
         Component txt = Component.translatable(inst.getAttribute().value().getDescriptionId());
         int splitWidth = 60;
@@ -612,14 +623,14 @@ public class AttributesGui implements Renderable, GuiEventListener {
             lines = this.font.split(txt, splitWidth);
         }
 
-        PoseStack stack = gfx.pose();
+        Matrix3x2fStack stack = gfx.pose();
 
-        stack.pushPose();
+        stack.pushMatrix();
         float scale = 1;
         int maxWidth = lines.stream().map(this.font::width).max(Integer::compareTo).get();
         if (maxWidth > 66) {
             scale = 66F / maxWidth;
-            stack.scale(scale, scale, 1);
+            stack.scale(scale, scale);
         }
 
         for (int i = 0; i < lines.size(); i++) {
@@ -627,10 +638,10 @@ public class AttributesGui implements Renderable, GuiEventListener {
             float width = this.font.width(line) * scale;
             float lineX = (x + 1 + (68 - width) / 2) / scale;
             float lineY = (y + (lines.size() == 1 ? 7 : 2) + i * 10) / scale;
-            gfx.drawString(font, line, lineX, lineY, 0x404040, false);
+            gfx.drawString(font, line, (int) lineX, (int) lineY, 0x404040, false);
         }
-        stack.popPose();
-        stack.pushPose();
+        stack.popMatrix();
+        stack.pushMatrix();
 
         var attr = (IFormattableAttribute) inst.getAttribute().value();
         MutableComponent value =
@@ -643,7 +654,7 @@ public class AttributesGui implements Renderable, GuiEventListener {
         scale = 1;
         if (this.font.width(value) > 27) {
             scale = 27F / this.font.width(value);
-            stack.scale(scale, scale, 1);
+            stack.scale(scale, scale);
         }
 
         int color = 0xFFFFFF;
@@ -663,7 +674,7 @@ public class AttributesGui implements Renderable, GuiEventListener {
                 (int) ((y + 7) / scale),
                 color,
                 true);
-        stack.popPose();
+        stack.popMatrix();
     }
 
     @Override
@@ -847,12 +858,17 @@ public class AttributesGui implements Renderable, GuiEventListener {
                 vOffset += 20;
             }
 
-            RenderSystem.enableDepthTest();
-            PoseStack pose = gfx.pose();
-            pose.pushPose();
-            pose.translate(0, 0, 100);
-            gfx.blit(TEXTURES, this.getX(), this.getY(), u, v + vOffset, 10, 10, 256, 256);
-            pose.popPose();
+            gfx.blit(
+                    RenderPipelines.GUI_TEXTURED,
+                    TEXTURES,
+                    this.getX(),
+                    this.getY(),
+                    u,
+                    v + vOffset,
+                    10,
+                    10,
+                    256,
+                    256);
         }
     }
 

@@ -173,6 +173,6 @@ public abstract class ThrownTridentMixin extends AbstractArrow {
             method = "onHitEntity(Lnet/minecraft/world/phys/EntityHitResult;)V",
             constant = @Constant(floatValue = 8.0F))
     public float apoth_getTridentDamage(float defaultDmg) {
-        return (float) (this.getBaseDamage() * 4.0F);
+        return (float) (this.baseDamage * 4.0F);
     }
 }
