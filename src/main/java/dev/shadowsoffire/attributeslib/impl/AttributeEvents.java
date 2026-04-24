@@ -181,7 +181,6 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.EquipmentSlotGroup;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
-import net.minecraft.world.entity.ai.attributes.AttributeMap;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation;
 import net.minecraft.world.entity.ai.attributes.Attributes;
@@ -206,19 +205,11 @@ import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
 import net.neoforged.neoforge.event.entity.player.CriticalHitEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent.BreakSpeed;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent;
 import net.neoforged.neoforge.event.level.BlockDropsEvent;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 
 public class AttributeEvents {
-
-    @SubscribeEvent
-    public void fixChangedAttributes(PlayerLoggedInEvent e) {
-        AttributeMap map = e.getEntity().getAttributes();
-        AttributeInstance stepHeight = map.getInstance(Attributes.STEP_HEIGHT);
-        if (stepHeight != null) stepHeight.setBaseValue(0.6);
-    }
 
     private boolean canBenefitFromDrawSpeed(ItemStack stack) {
         return stack.getItem() instanceof ProjectileWeaponItem

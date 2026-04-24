@@ -160,6 +160,7 @@ import dev.shadowsoffire.attributeslib.api.AttributeChangedValueEvent;
 import dev.shadowsoffire.attributeslib.util.IAttributeManager;
 import dev.shadowsoffire.attributeslib.util.IEntityOwned;
 import javax.annotation.Nullable;
+import net.minecraft.core.Holder;
 import net.minecraft.tags.DamageTypeTags;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.effect.MobEffect;
@@ -214,9 +215,9 @@ public abstract class LivingEntityMixin extends Entity {
             method = "getDamageAfterMagicAbsorb(Lnet/minecraft/world/damagesource/DamageSource;F)F")
     public float apoth_sunderingApplyEffect(
             float value, float max, DamageSource source, float damage) {
-        if (this.hasEffect(ALObjects.MobEffects.SUNDERING.get())
+        if (this.hasEffect(sunderingEffect())
                 && !source.is(DamageTypeTags.BYPASSES_RESISTANCE)) {
-            int level = this.getEffect(ALObjects.MobEffects.SUNDERING.get()).getAmplifier() + 1;
+            int level = this.getEffect(sunderingEffect()).getAmplifier() + 1;
             value += damage * level * 0.2F;
         }
         return Math.max(value, max);
@@ -231,9 +232,9 @@ public abstract class LivingEntityMixin extends Entity {
                     @At(
                             value = "INVOKE",
                             target =
-                                    "Lnet/minecraft/world/entity/LivingEntity;hasEffect(Lnet/minecraft/world/effect/MobEffect;)Z"),
+                                    "Lnet/minecraft/world/entity/LivingEntity;hasEffect(Lnet/minecraft/core/Holder;)Z"),
             method = "getDamageAfterMagicAbsorb(Lnet/minecraft/world/damagesource/DamageSource;F)F")
-    public boolean apoth_sunderingHasEffect(LivingEntity ths, MobEffect effect) {
+    public boolean apoth_sunderingHasEffect(LivingEntity ths, Holder<MobEffect> effect) {
         return true;
     }
 
@@ -253,23 +254,14 @@ public abstract class LivingEntityMixin extends Entity {
     }
 
     @Shadow
-    public abstract boolean hasEffect(MobEffect ef);
+    public abstract boolean hasEffect(Holder<MobEffect> ef);
 
     @Shadow
-    public abstract MobEffectInstance getEffect(MobEffect ef);
+    public abstract MobEffectInstance getEffect(Holder<MobEffect> ef);
 
-    @Redirect(
-            at =
-                    @At(
-                            value = "INVOKE",
-                            target =
-                                    "Lnet/minecraft/world/damagesource/CombatRules;getDamageAfterAbsorb(FFF)F"),
-            method = "getDamageAfterArmorAbsorb(Lnet/minecraft/world/damagesource/DamageSource;F)F",
-            require = 1)
-    public float apoth_applyArmorPen(
-            float amount, float armor, float toughness, DamageSource src, float amt2) {
-        return ALCombatRules.getDamageAfterArmor(
-                (LivingEntity) (Object) this, src, amount, armor, toughness);
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private static Holder<MobEffect> sunderingEffect() {
+        return (Holder) ALObjects.MobEffects.SUNDERING.asHolder();
     }
 
     @Redirect(
@@ -294,7 +286,7 @@ public abstract class LivingEntityMixin extends Entity {
                     @At(
                             value = "INVOKE",
                             target =
-                                    "Lnet/minecraft/world/effect/MobEffect;removeAttributeModifiers(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/entity/ai/attributes/AttributeMap;I)V"),
+                                    "Lnet/minecraft/world/effect/MobEffect;removeAttributeModifiers(Lnet/minecraft/world/entity/ai/attributes/AttributeMap;)V"),
             method = "onEffectUpdated",
             require = 1)
     public void apoth_onEffectUpdateRemoveAttribute(
@@ -311,7 +303,7 @@ public abstract class LivingEntityMixin extends Entity {
                     @At(
                             value = "INVOKE",
                             target =
-                                    "Lnet/minecraft/world/effect/MobEffect;addAttributeModifiers(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/entity/ai/attributes/AttributeMap;I)V",
+                                    "Lnet/minecraft/world/effect/MobEffect;addAttributeModifiers(Lnet/minecraft/world/entity/ai/attributes/AttributeMap;I)V",
                             shift = At.Shift.AFTER),
             method = "onEffectUpdated",
             require = 1)

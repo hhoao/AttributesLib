@@ -154,9 +154,10 @@
 
 package dev.shadowsoffire.attributeslib.mixin;
 
-import dev.shadowsoffire.attributeslib.AttributesLib;
 import dev.shadowsoffire.attributeslib.api.ALCombatRules;
 import net.minecraft.world.damagesource.CombatRules;
+import net.minecraft.world.damagesource.DamageSource;
+import net.minecraft.world.entity.LivingEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
 
@@ -176,9 +177,8 @@ public class CombatRulesMixin {
      *     float)}
      */
     @Overwrite
-    public static float getDamageAfterAbsorb(float damage, float armor, float toughness) {
-        AttributesLib.LOGGER.trace(
-                "Invocation of CombatRules#getDamageAfterAbsorb is bypassing armor pen.");
-        return damage * ALCombatRules.getArmorDamageReduction(damage, armor, toughness);
+    public static float getDamageAfterAbsorb(
+            LivingEntity target, float damage, DamageSource src, float armor, float toughness) {
+        return ALCombatRules.getDamageAfterArmor(target, src, damage, armor, toughness);
     }
 }

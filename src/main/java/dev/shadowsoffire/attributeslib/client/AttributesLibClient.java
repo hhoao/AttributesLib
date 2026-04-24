@@ -228,13 +228,11 @@ public class AttributesLibClient {
         }
     }
 
-    @SubscribeEvent
-    public static void clientReload(RegisterClientReloadListenersEvent e) {
+    public void clientReload(RegisterClientReloadListenersEvent e) {
         e.registerReloadListener(ALConfig.makeReloader());
     }
 
-    @SubscribeEvent
-    public static void particleFactories(RegisterParticleProvidersEvent e) {
+    public void particleFactories(RegisterParticleProvidersEvent e) {
         e.registerSprite(ALObjects.Particles.APOTH_CRIT.get(), ApothCritParticle::new);
     }
 

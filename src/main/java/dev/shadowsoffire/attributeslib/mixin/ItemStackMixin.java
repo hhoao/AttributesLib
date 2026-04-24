@@ -158,6 +158,7 @@ import java.util.List;
 import javax.annotation.Nullable;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import org.spongepowered.asm.mixin.Mixin;
@@ -173,16 +174,16 @@ public class ItemStackMixin {
     // where to rewind to.
     @Inject(
             method =
-                    "getTooltipLines(Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/item/TooltipFlag;)Ljava/util/List;",
+                    "getTooltipLines(Lnet/minecraft/world/item/Item$TooltipContext;Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/item/TooltipFlag;)Ljava/util/List;",
             at =
                     @At(
                             value = "INVOKE",
-                            ordinal = 4,
                             target =
-                                    "net/minecraft/world/item/ItemStack.shouldShowInTooltip(ILnet/minecraft/world/item/ItemStack$TooltipPart;)Z"),
+                                    "Lnet/minecraft/world/item/ItemStack;addAttributeTooltips(Ljava/util/function/Consumer;Lnet/minecraft/world/entity/player/Player;)V"),
             locals = LocalCapture.CAPTURE_FAILHARD,
             require = 1)
     public void apoth_tooltipMarker(
+            Item.TooltipContext pContext,
             @Nullable Player pPlayer,
             TooltipFlag pIsAdvanced,
             CallbackInfoReturnable<List<Component>> cir,
@@ -194,15 +195,17 @@ public class ItemStackMixin {
     // where to rewind to.
     @Inject(
             method =
-                    "getTooltipLines(Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/item/TooltipFlag;)Ljava/util/List;",
+                    "getTooltipLines(Lnet/minecraft/world/item/Item$TooltipContext;Lnet/minecraft/world/entity/player/Player;Lnet/minecraft/world/item/TooltipFlag;)Ljava/util/List;",
             at =
                     @At(
                             value = "INVOKE",
-                            ordinal = 1,
-                            target = "net/minecraft/world/item/ItemStack.hasTag()Z"),
+                            target =
+                                    "Lnet/minecraft/world/item/ItemStack;addAttributeTooltips(Ljava/util/function/Consumer;Lnet/minecraft/world/entity/player/Player;)V",
+                            shift = At.Shift.AFTER),
             locals = LocalCapture.CAPTURE_FAILHARD,
             require = 1)
     public void apoth_tooltipMarker2(
+            Item.TooltipContext pContext,
             @Nullable Player pPlayer,
             TooltipFlag pIsAdvanced,
             CallbackInfoReturnable<List<Component>> cir,

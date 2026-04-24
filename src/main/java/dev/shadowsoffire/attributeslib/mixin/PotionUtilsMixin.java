@@ -175,8 +175,8 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 public class PotionUtilsMixin {
 
     /**
-     * Redirects the second {@link List#isEmpty()} call that is checked before adding tooltips to
-     * potions to replace vanilla tooltip handling.<br>
+     * Redirects the {@link List#isEmpty()} call that is checked before adding attribute modifier
+     * tooltips to potions to replace vanilla tooltip handling.<br>
      * Target Line: <code>if (!list.isEmpty()) {</code>.
      *
      * @param list The potion's attribute modifiers.
@@ -187,7 +187,7 @@ public class PotionUtilsMixin {
      */
     @Redirect(
             method = "addPotionTooltip(Ljava/lang/Iterable;Ljava/util/function/Consumer;FF)V",
-            at = @At(value = "INVOKE", target = "Ljava/util/List;isEmpty()Z", ordinal = 1),
+            at = @At(value = "INVOKE", target = "Ljava/util/List;isEmpty()Z"),
             require = 1)
     private static boolean attributeslib_potionTooltips(
             List<Pair<Holder<Attribute>, AttributeModifier>> list,

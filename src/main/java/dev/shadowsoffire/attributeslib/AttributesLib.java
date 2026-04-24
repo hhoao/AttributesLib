@@ -203,15 +203,17 @@ public class AttributesLib {
     public static int knowledgeMult = 4;
 
     public AttributesLib(IEventBus modEventBus) {
+        ALObjects.bootstrap();
         R.register(modEventBus);
         modEventBus.register(this);
         NeoForge.EVENT_BUS.register(new AttributeEvents());
         if (FMLEnvironment.dist.isClient()) {
-            NeoForge.EVENT_BUS.register(new AttributesLibClient());
-            modEventBus.register(AttributesLibClient.class);
+            AttributesLibClient clientEvents = new AttributesLibClient();
+            NeoForge.EVENT_BUS.register(clientEvents);
+            modEventBus.addListener(clientEvents::clientReload);
+            modEventBus.addListener(clientEvents::particleFactories);
         }
 
-        ALObjects.bootstrap();
         ALConfig.load();
     }
 
@@ -269,10 +271,6 @@ public class AttributesLib {
                                     ALObjects.Attributes.ELYTRA_FLIGHT,
                                     ALObjects.Attributes.CREATIVE_FLIGHT);
                         });
-        // Change the base value of Step Height to reflect the real base value of a Player.
-        // The alternative is a bunch of special casing in the display.
-        // This is course-corrected in IForgeEntityMixin.
-        e.add(EntityType.PLAYER, Attributes.STEP_HEIGHT, 0.6);
     }
 
     @SafeVarargs
