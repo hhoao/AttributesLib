@@ -164,7 +164,7 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeMap;
-import net.minecraftforge.common.MinecraftForge;
+import net.neoforged.neoforge.common.NeoForge;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -216,7 +216,7 @@ public class AttributeMapMixin implements IEntityOwned, IAttributeManager {
             if (!this.getOwner().level().isClientSide) {
                 this.updatingAttributes.forEach(
                         (attr, pair) ->
-                                MinecraftForge.EVENT_BUS.post(
+                                NeoForge.EVENT_BUS.post(
                                         new AttributeChangedValueEvent(
                                                 this.getOwner(),
                                                 pair.getFirst(),
@@ -252,7 +252,7 @@ public class AttributeMapMixin implements IEntityOwned, IAttributeManager {
             double newValue =
                     inst.getValue(); // Calling getValue will compute the value once marked dirty.
             if (oldValue != newValue) {
-                MinecraftForge.EVENT_BUS.post(
+                NeoForge.EVENT_BUS.post(
                         new AttributeChangedValueEvent(getOwner(), inst, oldValue, newValue));
             }
         } else if (this.areAttributesUpdating()) {

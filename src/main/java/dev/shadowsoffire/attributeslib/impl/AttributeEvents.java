@@ -195,30 +195,30 @@ import net.minecraft.world.item.ProjectileWeaponItem;
 import net.minecraft.world.item.TridentItem;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.phys.EntityHitResult;
-import net.minecraftforge.common.ForgeMod;
-import net.minecraftforge.event.AddReloadListenerEvent;
-import net.minecraftforge.event.ItemAttributeModifierEvent;
-import net.minecraftforge.event.entity.EntityJoinLevelEvent;
-import net.minecraftforge.event.entity.ProjectileImpactEvent;
-import net.minecraftforge.event.entity.living.LivingAttackEvent;
-import net.minecraftforge.event.entity.living.LivingEntityUseItemEvent;
-import net.minecraftforge.event.entity.living.LivingExperienceDropEvent;
-import net.minecraftforge.event.entity.living.LivingHealEvent;
-import net.minecraftforge.event.entity.living.LivingHurtEvent;
-import net.minecraftforge.event.entity.player.AttackEntityEvent;
-import net.minecraftforge.event.entity.player.CriticalHitEvent;
-import net.minecraftforge.event.entity.player.PlayerEvent.BreakSpeed;
-import net.minecraftforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent;
-import net.minecraftforge.event.level.BlockEvent.BreakEvent;
-import net.minecraftforge.eventbus.api.EventPriority;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.neoforged.neoforge.common.NeoForgeMod;
+import net.neoforged.neoforge.event.AddReloadListenerEvent;
+import net.neoforged.neoforge.event.ItemAttributeModifierEvent;
+import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
+import net.neoforged.neoforge.event.entity.ProjectileImpactEvent;
+import net.neoforged.neoforge.event.entity.living.LivingAttackEvent;
+import net.neoforged.neoforge.event.entity.living.LivingEntityUseItemEvent;
+import net.neoforged.neoforge.event.entity.living.LivingExperienceDropEvent;
+import net.neoforged.neoforge.event.entity.living.LivingHealEvent;
+import net.neoforged.neoforge.event.entity.living.LivingHurtEvent;
+import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
+import net.neoforged.neoforge.event.entity.player.CriticalHitEvent;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent.BreakSpeed;
+import net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent;
+import net.neoforged.neoforge.event.level.BlockEvent.BreakEvent;
+import net.neoforged.bus.api.EventPriority;
+import net.neoforged.bus.api.SubscribeEvent;
 
 public class AttributeEvents {
 
     @SubscribeEvent
     public void fixChangedAttributes(PlayerLoggedInEvent e) {
         AttributeMap map = e.getEntity().getAttributes();
-        map.getInstance(ForgeMod.STEP_HEIGHT_ADDITION.get()).setBaseValue(0.6);
+        map.getInstance(NeoForgeMod.STEP_HEIGHT_ADDITION.get()).setBaseValue(0.6);
     }
 
     private boolean canBenefitFromDrawSpeed(ItemStack stack) {
@@ -553,17 +553,17 @@ public class AttributeEvents {
                         .isPresent();
         if (hasBaseAD) {
             boolean hasBaseAR =
-                    e.getModifiers().get(ForgeMod.ENTITY_REACH.get()).stream()
+                    e.getModifiers().get(NeoForgeMod.ENTITY_REACH.get()).stream()
                             .filter(
                                     m ->
-                                            ((IFormattableAttribute) ForgeMod.ENTITY_REACH.get())
+                                            ((IFormattableAttribute) NeoForgeMod.ENTITY_REACH.get())
                                                     .getBaseUUID()
                                                     .equals(m.getId()))
                             .findAny()
                             .isPresent();
             if (!hasBaseAR) {
                 e.addModifier(
-                        ForgeMod.ENTITY_REACH.get(),
+                        NeoForgeMod.ENTITY_REACH.get(),
                         new AttributeModifier(
                                 AttributeHelper.BASE_ENTITY_REACH,
                                 () -> "attributeslib:fake_base_range",

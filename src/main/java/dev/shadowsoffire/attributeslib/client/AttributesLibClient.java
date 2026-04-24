@@ -204,14 +204,14 @@ import net.minecraft.world.item.ItemStack.TooltipPart;
 import net.minecraft.world.item.PotionItem;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.alchemy.PotionUtils;
-import net.minecraftforge.client.event.ClientPlayerNetworkEvent;
-import net.minecraftforge.client.event.RegisterClientReloadListenersEvent;
-import net.minecraftforge.client.event.RegisterParticleProvidersEvent;
-import net.minecraftforge.client.event.ScreenEvent;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.entity.player.ItemTooltipEvent;
-import net.minecraftforge.eventbus.api.EventPriority;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
+import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
+import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
+import net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent;
+import net.neoforged.neoforge.client.event.ScreenEvent;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.entity.player.ItemTooltipEvent;
+import net.neoforged.bus.api.EventPriority;
+import net.neoforged.bus.api.SubscribeEvent;
 
 public class AttributesLibClient {
 
@@ -263,7 +263,7 @@ public class AttributesLibClient {
         if (shouldShowInTooltip(flags, TooltipPart.MODIFIERS)) {
             applyModifierTooltips(e.getEntity(), stack, it::add, e.getFlags());
         }
-        MinecraftForge.EVENT_BUS.post(
+        NeoForge.EVENT_BUS.post(
                 new AddAttributeTooltipsEvent(stack, e.getEntity(), list, it, e.getFlags()));
     }
 
@@ -422,7 +422,7 @@ public class AttributesLibClient {
                         });
 
         Set<UUID> skips = new HashSet<>();
-        MinecraftForge.EVENT_BUS.post(
+        NeoForge.EVENT_BUS.post(
                 new GatherSkippedAttributeTooltipsEvent(stack, player, skips, flag));
 
         applyTextFor(player, stack, tooltip, dualHand, "both_hands", skips, flag);

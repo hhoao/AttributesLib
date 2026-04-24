@@ -163,7 +163,7 @@ import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeMap;
-import net.minecraftforge.common.MinecraftForge;
+import net.neoforged.neoforge.common.NeoForge;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -236,7 +236,7 @@ public class ClientPacketListenerMixin {
             // the nullcheck will jump to, so we can receive null.
             double newValue = inst.getValue();
             if (newValue != apoth_lastValue) {
-                MinecraftForge.EVENT_BUS.post(
+                NeoForge.EVENT_BUS.post(
                         new AttributeChangedValueEvent(
                                 (LivingEntity) entity, inst, apoth_lastValue, newValue));
             }

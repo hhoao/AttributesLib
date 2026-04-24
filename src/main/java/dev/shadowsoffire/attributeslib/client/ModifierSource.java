@@ -252,7 +252,7 @@ public abstract class ModifierSource<T> implements Comparable<ModifierSource<T>>
             // We don't have an EffectRenderingInventoryScreen, so we'll just hope the texture is
             // good enough.
             // var renderer =
-            // net.minecraftforge.client.extensions.common.IClientMobEffectExtensions.of(inst);
+            // net.neoforged.neoforge.client.extensions.common.IClientMobEffectExtensions.of(inst);
             // if (renderer.renderInventoryIcon(inst, this, pPoseStack, pRenderX + (p_194013_ ? 6 :
             // 7), i, this.getBlitOffset())) {
             // i += pYOffset;

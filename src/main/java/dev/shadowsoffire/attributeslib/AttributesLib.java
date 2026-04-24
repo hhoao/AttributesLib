@@ -159,8 +159,11 @@ import dev.shadowsoffire.attributeslib.client.AttributesLibClient;
 import dev.shadowsoffire.attributeslib.impl.AttributeEvents;
 import dev.shadowsoffire.attributeslib.packet.CritParticleMessage;
 import dev.shadowsoffire.placebo.config.DeferredHelper;
+import dev.shadowsoffire.placebo.config.RegistryObject;
 import dev.shadowsoffire.placebo.network.MessageHelper;
 import java.util.function.BiConsumer;
+import net.minecraft.core.Holder;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.client.Minecraft;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.effect.MobEffects;
@@ -173,18 +176,16 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.attributes.DefaultAttributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraftforge.common.ForgeMod;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.event.entity.EntityAttributeModificationEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
-import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
-import net.minecraftforge.fml.loading.FMLEnvironment;
+import net.neoforged.neoforge.common.NeoForgeMod;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.neoforge.event.entity.EntityAttributeModificationEvent;
+import net.neoforged.bus.api.IEventBus;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.neoforged.fml.loading.FMLEnvironment;
 import net.minecraftforge.network.NetworkRegistry;
 import net.minecraftforge.network.simple.SimpleChannel;
-import net.minecraftforge.registries.ForgeRegistries;
-import net.minecraftforge.registries.RegistryObject;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -211,12 +212,13 @@ public class AttributesLib {
                     .networkProtocolVersion(() -> "1.0.0")
                     .simpleChannel();
 
-    public AttributesLib() {
-        FMLJavaModLoadingContext.get().getModEventBus().register(this);
-        MinecraftForge.EVENT_BUS.register(new AttributeEvents());
+    public AttributesLib(IEventBus modEventBus) {
+        R.register(modEventBus);
+        modEventBus.register(this);
+        NeoForge.EVENT_BUS.register(new AttributeEvents());
         if (FMLEnvironment.dist.isClient()) {
-            MinecraftForge.EVENT_BUS.register(new AttributesLibClient());
-            FMLJavaModLoadingContext.get().getModEventBus().register(AttributesLibClient.class);
+            NeoForge.EVENT_BUS.register(new AttributesLibClient());
+            modEventBus.register(AttributesLibClient.class);
         }
 
         MessageHelper.registerMessage(CHANNEL, 0, new CritParticleMessage.Provider());
@@ -226,7 +228,7 @@ public class AttributesLib {
 
     @SubscribeEvent
     public void init(FMLCommonSetupEvent e) {
-        MinecraftForge.EVENT_BUS.register(ALObjects.MobEffects.KNOWLEDGE.get());
+        NeoForge.EVENT_BUS.register(ALObjects.MobEffects.KNOWLEDGE.get());
         e.enqueueWork(
                 () -> {
                     MobEffects.BLINDNESS.addAttributeModifier(
@@ -236,7 +238,7 @@ public class AttributesLib {
                             Operation.MULTIPLY_TOTAL);
                     // TODO: Update to show in GUI without applying attribute to entity
                     // if (MobEffects.SLOW_FALLING.getAttributeModifiers().isEmpty()) {
-                    // MobEffects.SLOW_FALLING.addAttributeModifier(ForgeMod.ENTITY_GRAVITY.get(),
+                    // MobEffects.SLOW_FALLING.addAttributeModifier(NeoForgeMod.ENTITY_GRAVITY.get(),
                     // "A5B6CF2A-2F7C-31EF-9022-7C3E7D5E6ABA", -0.07, Operation.ADDITION);
                     // }
                 });
@@ -276,22 +278,24 @@ public class AttributesLib {
         // Change the base value of Step Height to reflect the real base value of a Player.
         // The alternative is a bunch of special casing in the display.
         // This is course-corrected in IForgeEntityMixin.
-        e.add(EntityType.PLAYER, ForgeMod.STEP_HEIGHT_ADDITION.get(), 0.6);
+        e.add(EntityType.PLAYER, Attributes.STEP_HEIGHT, 0.6);
     }
 
     @SafeVarargs
     private static void addAll(
             EntityType<? extends LivingEntity> type,
-            BiConsumer<EntityType<? extends LivingEntity>, Attribute> add,
+            BiConsumer<EntityType<? extends LivingEntity>, Holder<Attribute>> add,
             RegistryObject<? extends Attribute>... attribs) {
-        for (RegistryObject<? extends Attribute> a : attribs) add.accept(type, a.get());
+        for (RegistryObject<? extends Attribute> a : attribs) add.accept(type, a.asHolder());
     }
 
     @SubscribeEvent
     public void setup(FMLCommonSetupEvent e) {
         AttributeSupplier playerAttribs = DefaultAttributes.getSupplier(EntityType.PLAYER);
-        for (Attribute attr : ForgeRegistries.ATTRIBUTES.getValues()) {
-            if (playerAttribs.hasAttribute(attr)) attr.setSyncable(true);
+        for (Attribute attr : BuiltInRegistries.ATTRIBUTE) {
+            if (playerAttribs.hasAttribute(BuiltInRegistries.ATTRIBUTE.wrapAsHolder(attr))) {
+                attr.setSyncable(true);
+            }
         }
     }
 
@@ -301,7 +305,7 @@ public class AttributesLib {
     }
 
     public static ResourceLocation loc(String path) {
-        return new ResourceLocation(MODID, path);
+        return ResourceLocation.fromNamespaceAndPath(MODID, path);
     }
 
     private static class ClientAccess {

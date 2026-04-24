@@ -159,7 +159,7 @@ import java.util.List;
 import net.minecraft.client.gui.screens.inventory.EffectRenderingInventoryScreen;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraftforge.common.MinecraftForge;
+import net.neoforged.neoforge.common.NeoForge;
 
 /** Contains coremod-injected hooks. */
 public class ALHooks {
@@ -179,7 +179,7 @@ public class ALHooks {
             MobEffectInstance effectInst,
             List<Component> tooltip) {
         var event = new GatherEffectScreenTooltipsEvent(screen, effectInst, tooltip);
-        MinecraftForge.EVENT_BUS.post(event);
+        NeoForge.EVENT_BUS.post(event);
         return event.getTooltip();
     }
 }

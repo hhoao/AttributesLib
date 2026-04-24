@@ -158,8 +158,8 @@ import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeMap;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.eventbus.api.Event;
+import net.neoforged.neoforge.common.NeoForge;
+import net.neoforged.bus.api.Event;
 
 /**
  * This event is fired whenever the value of an attribute changes values.<br>
@@ -172,7 +172,7 @@ import net.minecraftforge.eventbus.api.Event;
  *       all changes have been processed.
  * </ul>
  *
- * It is fired on {@link MinecraftForge#EVENT_BUS}.
+ * It is fired on {@link NeoForge#EVENT_BUS}.
  */
 public class AttributeChangedValueEvent extends Event {
 

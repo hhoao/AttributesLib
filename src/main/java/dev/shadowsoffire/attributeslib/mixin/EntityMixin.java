@@ -156,7 +156,7 @@ package dev.shadowsoffire.attributeslib.mixin;
 
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
-import net.minecraftforge.common.ForgeMod;
+import net.neoforged.neoforge.common.NeoForgeMod;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
@@ -175,7 +175,7 @@ public abstract class EntityMixin {
             argsOnly = true)
     public double apoth_checkFallDamageWithGravity(double yMotion) {
         if (yMotion < 0 && (Object) this instanceof LivingEntity le) {
-            double gravity = le.getAttributeValue(ForgeMod.ENTITY_GRAVITY.get());
+            double gravity = le.getAttributeValue(NeoForgeMod.ENTITY_GRAVITY.get());
             yMotion *= gravity / 0.08D;
             if (gravity <= 0.01D) {
                 yMotion = 0; // Slow Falling reduces gravity to this value, and always prevents fall

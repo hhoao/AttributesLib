@@ -175,7 +175,7 @@ import net.minecraft.world.damagesource.DamageType;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation;
 import net.minecraft.world.entity.ai.attributes.RangedAttribute;
-import net.minecraftforge.registries.RegistryObject;
+import dev.shadowsoffire.placebo.config.RegistryObject;
 import org.jetbrains.annotations.ApiStatus;
 
 public class ALObjects {
