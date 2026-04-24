@@ -113,7 +113,7 @@ tasks.named('processResources', ProcessResources).configure {
     ]
     inputs.properties replaceProperties
 
-    filesMatching(['pack.mcmeta', "${mod_id}.mixins.json"]) {
+    filesMatching(['pack.mcmeta', "${mod_id}.mixins.json".toString()]) {
         expand replaceProperties
     }
 }

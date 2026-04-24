@@ -1,0 +1,29 @@
+{
+  "required": true,
+  "package": "dev.shadowsoffire.attributeslib.mixin",
+  "compatibilityLevel": "JAVA_${java_version}",
+  "refmap": "${mod_id}.refmap.json",
+  "maxShiftBy": 5,
+  "mixins": [
+    "AbilitiesMixin",
+    "AttributeInstanceAccessor",
+    "AttributeMapMixin",
+    "AttributeMixin",
+    "CombatRulesMixin",
+    "EntityMixin",
+    "GameTypeMixin",
+    "IForgeEntityMixin",
+    "IForgeItemMixin",
+    "ItemStackMixin",
+    "LivingEntityMixin",
+    "NearestAttackableTargetGoalMixin",
+    "PlayerMixin",
+    "PotionUtilsMixin",
+    "ThrownTridentMixin"
+  ],
+  "client": [
+    "client.AbstractContainerScreenMixin",
+    "client.ClientPacketListenerMixin"
+  ],
+  "minVersion": "0.8"
+}
