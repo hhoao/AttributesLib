@@ -155,21 +155,19 @@
 package dev.shadowsoffire.attributeslib.api;
 
 import dev.shadowsoffire.attributeslib.AttributesLib;
-import java.util.UUID;
 import java.util.function.Consumer;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
-import net.minecraft.world.entity.MobType;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation;
 import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.enchantment.EnchantmentHelper;
-import net.neoforged.neoforge.common.NeoForgeMod;
+import net.minecraft.world.item.component.ItemAttributeModifiers;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -200,24 +198,25 @@ public interface IFormattableAttribute {
         // but percent-based is the real desire.
         // For Swim Speed, the implementation is percent-based, but no additional tricks are
         // performed.
-        if (this == Attributes.KNOCKBACK_RESISTANCE || this == NeoForgeMod.SWIM_SPEED.get()) {
+        if (this == Attributes.KNOCKBACK_RESISTANCE.value()
+                || this == net.neoforged.neoforge.common.NeoForgeMod.SWIM_SPEED.value()) {
             return Component.translatable(
                     "attributeslib.value.percent",
-                    ItemStack.ATTRIBUTE_MODIFIER_FORMAT.format(value * 100));
+                    ItemAttributeModifiers.ATTRIBUTE_MODIFIER_FORMAT.format(value * 100));
         }
         // Speed has no metric, so displaying everything as percent works better for the user.
         // However, Speed also operates in that the default is 0.1, not 1, so we have to
         //        // special-case it instead of including it above.
-        if (this == Attributes.MOVEMENT_SPEED && isNullOrAddition(op)) {
+        if (this == Attributes.MOVEMENT_SPEED.value() && isNullOrAddition(op)) {
             return Component.translatable(
                     "attributeslib.value.percent",
-                    ItemStack.ATTRIBUTE_MODIFIER_FORMAT.format(value * 1000));
+                    ItemAttributeModifiers.ATTRIBUTE_MODIFIER_FORMAT.format(value * 1000));
         }
         String key =
                 isNullOrAddition(op) ? "attributeslib.value.flat" : "attributeslib.value.percent";
         return Component.translatable(
                 key,
-                ItemStack.ATTRIBUTE_MODIFIER_FORMAT.format(
+                ItemAttributeModifiers.ATTRIBUTE_MODIFIER_FORMAT.format(
                         isNullOrAddition(op) ? value : value * 100));
     }
 
@@ -278,18 +277,18 @@ public interface IFormattableAttribute {
             // MULTIPLY_TOTAL by 1 due to how the operation is calculated.
             double advValue =
                     (modif.operation() == Operation.ADD_MULTIPLIED_TOTAL ? 1 : 0) + modif.amount();
-            String valueStr = ItemStack.ATTRIBUTE_MODIFIER_FORMAT.format(advValue);
+            String valueStr = ItemAttributeModifiers.ATTRIBUTE_MODIFIER_FORMAT.format(advValue);
             String txt =
                     switch (modif.operation()) {
-                        case ADDITION ->
+                        case ADD_VALUE ->
                                 advValue > 0
                                         ? String.format("[+%s]", valueStr)
                                         : String.format("[%s]", valueStr);
-                        case MULTIPLY_BASE ->
+                        case ADD_MULTIPLIED_BASE ->
                                 advValue > 0
                                         ? String.format("[+%sx]", valueStr)
                                         : String.format("[%sx]", valueStr);
-                        case MULTIPLY_TOTAL -> String.format("[x%s]", valueStr);
+                        case ADD_MULTIPLIED_TOTAL -> String.format("[x%s]", valueStr);
                     };
             debugInfo =
                     Component.literal(" ")
@@ -299,16 +298,17 @@ public interface IFormattableAttribute {
     }
 
     /**
-     * Gets the specific UUID that represents a "base" (green) modifier for this attribute.
+     * Gets the specific id that represents a "base" (green) modifier for this attribute.
      *
      * @param modif The attribute modifier being checked.
      * @param flag The tooltip flag.
-     * @return The UUID of the "base" modifier, or null, if no such modifier may exist.
+     * @return The id of the "base" modifier, or null, if no such modifier may exist.
      */
-    @Nullable default UUID getBaseUUID() {
-        if (this == Attributes.ATTACK_DAMAGE) return AttributeHelper.BASE_ATTACK_DAMAGE;
-        else if (this == Attributes.ATTACK_SPEED) return AttributeHelper.BASE_ATTACK_SPEED;
-        else if (this == NeoForgeMod.ENTITY_REACH.get()) return AttributeHelper.BASE_ENTITY_REACH;
+    @Nullable default ResourceLocation getBaseId() {
+        if (this == Attributes.ATTACK_DAMAGE.value()) return AttributeHelper.BASE_ATTACK_DAMAGE;
+        else if (this == Attributes.ATTACK_SPEED.value()) return AttributeHelper.BASE_ATTACK_SPEED;
+        else if (this == Attributes.ENTITY_INTERACTION_RANGE.value())
+            return AttributeHelper.BASE_ENTITY_REACH;
         return null;
     }
 
@@ -338,9 +338,9 @@ public interface IFormattableAttribute {
                             .append(
                                     Component.translatable(
                                                     AttributesLib.MODID + ".adv.base",
-                                                    ItemStack.ATTRIBUTE_MODIFIER_FORMAT.format(
+                                                    ItemAttributeModifiers.ATTRIBUTE_MODIFIER_FORMAT.format(
                                                             entityBase),
-                                                    ItemStack.ATTRIBUTE_MODIFIER_FORMAT.format(
+                                                    ItemAttributeModifiers.ATTRIBUTE_MODIFIER_FORMAT.format(
                                                             value - entityBase))
                                             .withStyle(ChatFormatting.GRAY));
         }
@@ -348,7 +348,7 @@ public interface IFormattableAttribute {
         MutableComponent comp =
                 Component.translatable(
                         "attribute.modifier.equals.0",
-                        ItemStack.ATTRIBUTE_MODIFIER_FORMAT.format(value),
+                        ItemAttributeModifiers.ATTRIBUTE_MODIFIER_FORMAT.format(value),
                         Component.translatable(attr.getDescriptionId()));
 
         return comp.append(debugInfo);
@@ -365,8 +365,6 @@ public interface IFormattableAttribute {
      *     applied.
      */
     default double getBonusBaseValue(ItemStack stack) {
-        if (this == Attributes.ATTACK_DAMAGE)
-            return EnchantmentHelper.getDamageBonus(stack, MobType.UNDEFINED);
         return 0;
     }
 
@@ -381,8 +379,9 @@ public interface IFormattableAttribute {
      * @param flag The tooltip flag.
      */
     default void addBonusTooltips(ItemStack stack, Consumer<Component> tooltip, TooltipFlag flag) {
-        if (this == Attributes.ATTACK_DAMAGE) {
-            float sharpness = EnchantmentHelper.getDamageBonus(stack, MobType.UNDEFINED);
+        if (this == Attributes.ATTACK_DAMAGE.value()) {
+            float sharpness = (float) this.getBonusBaseValue(stack);
+            if (sharpness <= 0) return;
             Component debugInfo = CommonComponents.EMPTY;
             if (flag.isAdvanced()) {
                 // Show the user that this fake modifier is from Sharpness.
@@ -400,7 +399,7 @@ public interface IFormattableAttribute {
                             .append(
                                     Component.translatable(
                                                     "attribute.modifier.plus.0",
-                                                    ItemStack.ATTRIBUTE_MODIFIER_FORMAT.format(
+                                                    ItemAttributeModifiers.ATTRIBUTE_MODIFIER_FORMAT.format(
                                                             sharpness),
                                                     Component.translatable(
                                                             this.ths().getDescriptionId()))

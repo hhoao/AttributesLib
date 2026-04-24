@@ -189,7 +189,7 @@ public class GameTypeMixin {
     public void apoth_flightAttribModifier(Abilities abilities, CallbackInfo ci) {
         Player player = (Player) ((IEntityOwned) abilities).getOwner();
         AttributeEvents.applyCreativeFlightModifier(player, (GameType) (Object) this);
-        if (player.getAttributeValue(Attributes.CREATIVE_FLIGHT.get()) > 0) {
+        if (player.getAttributeValue(Attributes.CREATIVE_FLIGHT.asHolder()) > 0) {
             abilities.mayfly = true;
             abilities.flying = ((IFlying) player).getAndDestroyFlyingCache() || this.apoth_flying;
         }

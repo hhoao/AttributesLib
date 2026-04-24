@@ -155,7 +155,7 @@
 package dev.shadowsoffire.attributeslib.api.client;
 
 import java.util.Set;
-import java.util.UUID;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
@@ -165,7 +165,7 @@ import net.neoforged.neoforge.event.entity.player.PlayerEvent;
 import org.jetbrains.annotations.Nullable;
 
 /**
- * This event is used to collect UUIDs of attribute modifiers that will not be displayed in item
+ * This event is used to collect ids of attribute modifiers that will not be displayed in item
  * tooltips.
  *
  * <p>This allows hiding specific modifiers for whatever reason. They will still be shown in the
@@ -177,11 +177,11 @@ import org.jetbrains.annotations.Nullable;
 public class GatherSkippedAttributeTooltipsEvent extends PlayerEvent {
 
     protected final ItemStack stack;
-    protected final Set<UUID> skips;
+    protected final Set<ResourceLocation> skips;
     protected final TooltipFlag flag;
 
     public GatherSkippedAttributeTooltipsEvent(
-            ItemStack stack, @Nullable Player player, Set<UUID> skips, TooltipFlag flag) {
+            ItemStack stack, @Nullable Player player, Set<ResourceLocation> skips, TooltipFlag flag) {
         super(player);
         this.stack = stack;
         this.skips = skips;
@@ -202,10 +202,10 @@ public class GatherSkippedAttributeTooltipsEvent extends PlayerEvent {
     }
 
     /**
-     * Mark the UUID of a specific attribute modifier as skipped, causing it to not be displayed in
+     * Mark the id of a specific attribute modifier as skipped, causing it to not be displayed in
      * the tooltip.
      */
-    public void skipUUID(UUID id) {
+    public void skipId(ResourceLocation id) {
         this.skips.add(id);
     }
 

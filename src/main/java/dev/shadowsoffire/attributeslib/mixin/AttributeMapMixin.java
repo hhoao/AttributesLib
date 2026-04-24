@@ -160,6 +160,7 @@ import dev.shadowsoffire.attributeslib.util.IAttributeManager;
 import dev.shadowsoffire.attributeslib.util.IEntityOwned;
 import java.util.HashMap;
 import java.util.Map;
+import net.minecraft.core.Holder;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
@@ -184,7 +185,8 @@ public class AttributeMapMixin implements IEntityOwned, IAttributeManager {
 
     protected LivingEntity owner;
     private boolean areAttributesUpdating;
-    private Map<Attribute, Pair<AttributeInstance, Double>> updatingAttributes = new HashMap<>();
+    private Map<Holder<Attribute>, Pair<AttributeInstance, Double>> updatingAttributes =
+            new HashMap<>();
 
     @Override
     public LivingEntity getOwner() {

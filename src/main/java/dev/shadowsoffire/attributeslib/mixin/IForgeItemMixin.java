@@ -175,7 +175,7 @@ public interface IForgeItemMixin {
      */
     @Overwrite(remap = false)
     default boolean canElytraFly(ItemStack stack, LivingEntity entity) {
-        return entity.getAttributeValue(Attributes.ELYTRA_FLIGHT.get()) > 0;
+        return entity.getAttributeValue(Attributes.ELYTRA_FLIGHT.asHolder()) > 0;
     }
 
     /**
@@ -189,6 +189,6 @@ public interface IForgeItemMixin {
      */
     @Overwrite(remap = false)
     default boolean elytraFlightTick(ItemStack stack, LivingEntity entity, int flightTicks) {
-        return entity.getAttributeValue(Attributes.ELYTRA_FLIGHT.get()) > 0;
+        return entity.getAttributeValue(Attributes.ELYTRA_FLIGHT.asHolder()) > 0;
     }
 }

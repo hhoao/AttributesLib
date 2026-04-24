@@ -168,7 +168,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.UUID;
+import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
@@ -176,6 +176,7 @@ import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.ImageButton;
 import net.minecraft.client.gui.components.Renderable;
+import net.minecraft.client.gui.components.WidgetSprites;
 import net.minecraft.client.gui.components.events.GuiEventListener;
 import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.gui.screens.inventory.tooltip.ClientTooltipComponent;
@@ -200,12 +201,13 @@ import net.minecraft.world.entity.ai.attributes.RangedAttribute;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
-import net.neoforged.neoforge.registries.ForgeRegistries;
+import net.minecraft.world.item.component.ItemAttributeModifiers;
 
 public class AttributesGui implements Renderable, GuiEventListener {
 
     public static final ResourceLocation TEXTURES =
             AttributesLib.loc("textures/gui/attributes_gui.png");
+    private static final WidgetSprites DUMMY_SPRITES = new WidgetSprites(TEXTURES, TEXTURES);
     public static final int ENTRY_HEIGHT = 22;
     public static final int MAX_ENTRIES = 6;
     public static final int WIDTH = 131;
@@ -246,18 +248,28 @@ public class AttributesGui implements Renderable, GuiEventListener {
                         parent.getGuiTop() + 10,
                         10,
                         10,
-                        WIDTH,
-                        0,
-                        10,
-                        TEXTURES,
-                        256,
-                        256,
+                        DUMMY_SPRITES,
                         btn -> {
                             this.toggleVisibility();
                         },
                         Component.translatable("attributeslib.gui.show_attributes")) {
                     @Override
                     public void setFocused(boolean pFocused) {}
+
+                    @Override
+                    public void renderWidget(
+                            GuiGraphics gfx, int pMouseX, int pMouseY, float pPartialTick) {
+                        gfx.blit(
+                                TEXTURES,
+                                this.getX(),
+                                this.getY(),
+                                WIDTH,
+                                this.isHoveredOrFocused() ? 10 : 0,
+                                10,
+                                10,
+                                256,
+                                256);
+                    }
                 };
         if (this.parent.children().size() > 1) {
             GuiEventListener btn = this.parent.children().get(0);
@@ -269,13 +281,13 @@ public class AttributesGui implements Renderable, GuiEventListener {
     @SuppressWarnings("deprecation")
     public void refreshData() {
         this.data.clear();
-        ForgeRegistries.ATTRIBUTES.getValues().stream()
-                .map(this.player::getAttribute)
+        BuiltInRegistries.ATTRIBUTE.stream()
+                .map(attr -> this.player.getAttribute(BuiltInRegistries.ATTRIBUTE.wrapAsHolder(attr)))
                 .filter(Objects::nonNull)
                 .filter(
                         ai ->
                                 !ALConfig.hiddenAttributes.contains(
-                                        BuiltInRegistries.ATTRIBUTE.getKey(ai.getAttribute())))
+                                        BuiltInRegistries.ATTRIBUTE.getKey(ai.getAttribute().value())))
                 .filter(ai -> !hideUnchanged || (ai.getBaseValue() != ai.getValue()))
                 .forEach(this.data::add);
         this.data.sort(this::compareAttrs);
@@ -291,9 +303,9 @@ public class AttributesGui implements Renderable, GuiEventListener {
 
         int newLeftPos;
         if (this.open && this.parent.width >= 379) {
-            newLeftPos = 177 + (this.parent.width - this.parent.imageWidth - 200) / 2;
+            newLeftPos = 177 + (this.parent.width - this.parent.getXSize() - 200) / 2;
         } else {
-            newLeftPos = (this.parent.width - this.parent.imageWidth) / 2;
+            newLeftPos = (this.parent.width - this.parent.getXSize()) / 2;
         }
 
         this.parent.leftPos = newLeftPos;
@@ -307,8 +319,8 @@ public class AttributesGui implements Renderable, GuiEventListener {
     }
 
     protected int compareAttrs(AttributeInstance a1, AttributeInstance a2) {
-        String name = I18n.get(a1.getAttribute().getDescriptionId());
-        String name2 = I18n.get(a2.getAttribute().getDescriptionId());
+        String name = I18n.get(a1.getAttribute().value().getDescriptionId());
+        String name2 = I18n.get(a2.getAttribute().value().getDescriptionId());
         return name.compareTo(name2);
     }
 
@@ -376,11 +388,9 @@ public class AttributesGui implements Renderable, GuiEventListener {
         AttributeInstance inst = this.getHoveredSlot(mouseX, mouseY);
         if (inst != null) {
             boolean isDynamic =
-                    BuiltInRegistries.ATTRIBUTE
-                            .wrapAsHolder(inst.getAttribute())
-                            .is(ALObjects.Tags.DYNAMIC_BASE_ATTRIBUTES);
+                    inst.getAttribute().is(ALObjects.Tags.DYNAMIC_BASE_ATTRIBUTES);
 
-            Attribute attr = inst.getAttribute();
+            Attribute attr = inst.getAttribute().value();
             IFormattableAttribute fAttr = (IFormattableAttribute) attr;
             List<Component> list = new ArrayList<>();
             MutableComponent name =
@@ -478,7 +488,7 @@ public class AttributesGui implements Renderable, GuiEventListener {
                                 .withStyle(ChatFormatting.GOLD),
                         finalTooltip);
 
-                Map<UUID, ModifierSource<?>> modifiersToSources = new HashMap<>();
+                Map<ResourceLocation, ModifierSource<?>> modifiersToSources = new HashMap<>();
 
                 for (ModifierSourceType<?> type : ModifierSourceType.getTypes()) {
                     type.extract(
@@ -490,10 +500,13 @@ public class AttributesGui implements Renderable, GuiEventListener {
                 double[] numericValues = new double[3];
 
                 for (Operation op : Operation.values()) {
-                    List<AttributeModifier> modifiers = new ArrayList<>(inst.getModifiers(op));
+                    List<AttributeModifier> modifiers =
+                            inst.getModifiers().stream()
+                                    .filter(modifier -> modifier.operation() == op)
+                                    .collect(Collectors.toCollection(ArrayList::new));
                     double opValue =
                             modifiers.stream()
-                                    .mapToDouble(AttributeModifier::getAmount)
+                                    .mapToDouble(AttributeModifier::amount)
                                     .reduce(
                                             op == Operation.ADD_MULTIPLIED_TOTAL ? 1 : 0,
                                             (res, elem) ->
@@ -589,7 +602,7 @@ public class AttributesGui implements Renderable, GuiEventListener {
         boolean hover = this.getHoveredSlot(mouseX, mouseY) == inst;
         gfx.blit(TEXTURES, x, y, 142, hover ? ENTRY_HEIGHT : 0, 100, ENTRY_HEIGHT);
 
-        Component txt = Component.translatable(inst.getAttribute().getDescriptionId());
+        Component txt = Component.translatable(inst.getAttribute().value().getDescriptionId());
         int splitWidth = 60;
         List<FormattedCharSequence> lines = this.font.split(txt, splitWidth);
         // We can only actually display two lines here, but we need to forcibly create two lines and
@@ -619,13 +632,11 @@ public class AttributesGui implements Renderable, GuiEventListener {
         stack.popPose();
         stack.pushPose();
 
-        var attr = (IFormattableAttribute) inst.getAttribute();
+        var attr = (IFormattableAttribute) inst.getAttribute().value();
         MutableComponent value =
                 attr.toValueComponent(null, inst.getValue(), TooltipFlag.Default.NORMAL);
 
-        if (BuiltInRegistries.ATTRIBUTE
-                .wrapAsHolder(inst.getAttribute())
-                .is(ALObjects.Tags.DYNAMIC_BASE_ATTRIBUTES)) {
+        if (inst.getAttribute().is(ALObjects.Tags.DYNAMIC_BASE_ATTRIBUTES)) {
             value = Component.literal("\uFFFD");
         }
 
@@ -690,11 +701,12 @@ public class AttributesGui implements Renderable, GuiEventListener {
     }
 
     @Override
-    public boolean mouseScrolled(double pMouseX, double pMouseY, double pDelta) {
+    public boolean mouseScrolled(
+            double pMouseX, double pMouseY, double pScrollX, double pScrollY) {
         if (!this.open) return false;
         if (this.isScrollBarActive()) {
             int i = this.getOffScreenRows();
-            scrollOffset = (float) (scrollOffset - pDelta / i);
+            scrollOffset = (float) (scrollOffset - pScrollY / i);
             scrollOffset = Mth.clamp(scrollOffset, 0.0F, 1.0F);
             this.startIndex = (int) (scrollOffset * i + 0.5D);
             return true;
@@ -732,7 +744,7 @@ public class AttributesGui implements Renderable, GuiEventListener {
                 && pMouseY < pY + pHeight + 1;
     }
 
-    private static DecimalFormat f = ItemStack.ATTRIBUTE_MODIFIER_FORMAT;
+    private static DecimalFormat f = ItemAttributeModifiers.ATTRIBUTE_MODIFIER_FORMAT;
 
     public static String format(int n) {
         int log = (int) StrictMath.log10(n);
@@ -816,13 +828,8 @@ public class AttributesGui implements Renderable, GuiEventListener {
                     pY,
                     10,
                     10,
-                    131,
-                    20,
-                    10,
-                    TEXTURES,
-                    256,
-                    256,
-                    null,
+                    DUMMY_SPRITES,
+                    btn -> {},
                     Component.literal("Hide Unchanged Attributes"));
             this.visible = false;
         }

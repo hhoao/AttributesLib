@@ -160,7 +160,6 @@ import dev.shadowsoffire.attributeslib.impl.AttributeEvents;
 import dev.shadowsoffire.attributeslib.packet.CritParticleMessage;
 import dev.shadowsoffire.placebo.config.DeferredHelper;
 import dev.shadowsoffire.placebo.config.RegistryObject;
-import dev.shadowsoffire.placebo.network.MessageHelper;
 import java.util.function.BiConsumer;
 import net.minecraft.core.Holder;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -184,8 +183,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.fml.loading.FMLEnvironment;
-import net.minecraftforge.network.NetworkRegistry;
-import net.minecraftforge.network.simple.SimpleChannel;
+import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -205,13 +203,6 @@ public class AttributesLib {
 
     public static int knowledgeMult = 4;
 
-    public static final SimpleChannel CHANNEL =
-            NetworkRegistry.ChannelBuilder.named(new ResourceLocation(MODID, MODID))
-                    .clientAcceptedVersions(s -> true)
-                    .serverAcceptedVersions(s -> true)
-                    .networkProtocolVersion(() -> "1.0.0")
-                    .simpleChannel();
-
     public AttributesLib(IEventBus modEventBus) {
         R.register(modEventBus);
         modEventBus.register(this);
@@ -221,9 +212,18 @@ public class AttributesLib {
             modEventBus.register(AttributesLibClient.class);
         }
 
-        MessageHelper.registerMessage(CHANNEL, 0, new CritParticleMessage.Provider());
         ALObjects.bootstrap();
         ALConfig.load();
+    }
+
+    @SubscribeEvent
+    public void registerPayloads(RegisterPayloadHandlersEvent e) {
+        e.registrar(MODID)
+                .versioned("1.0.0")
+                .playToClient(
+                        CritParticleMessage.TYPE,
+                        CritParticleMessage.STREAM_CODEC,
+                        CritParticleMessage::handle);
     }
 
     @SubscribeEvent
@@ -231,9 +231,9 @@ public class AttributesLib {
         NeoForge.EVENT_BUS.register(ALObjects.MobEffects.KNOWLEDGE.get());
         e.enqueueWork(
                 () -> {
-                    MobEffects.BLINDNESS.addAttributeModifier(
+                    MobEffects.BLINDNESS.value().addAttributeModifier(
                             Attributes.FOLLOW_RANGE,
-                            "f8c3de3d-1fea-4d7c-a8b0-22f63c4c3454",
+                            loc("blindness_follow_range"),
                             -0.75,
                             Operation.ADD_MULTIPLIED_TOTAL);
                     // TODO: Update to show in GUI without applying attribute to entity
@@ -286,7 +286,15 @@ public class AttributesLib {
             EntityType<? extends LivingEntity> type,
             BiConsumer<EntityType<? extends LivingEntity>, Holder<Attribute>> add,
             RegistryObject<? extends Attribute>... attribs) {
-        for (RegistryObject<? extends Attribute> a : attribs) add.accept(type, a.asHolder());
+        for (RegistryObject<? extends Attribute> a : attribs) addOne(type, add, a);
+    }
+
+    @SuppressWarnings("unchecked")
+    private static void addOne(
+            EntityType<? extends LivingEntity> type,
+            BiConsumer<EntityType<? extends LivingEntity>, Holder<Attribute>> add,
+            RegistryObject<? extends Attribute> attrib) {
+        add.accept(type, (Holder<Attribute>) (Holder<?>) attrib.asHolder());
     }
 
     @SubscribeEvent

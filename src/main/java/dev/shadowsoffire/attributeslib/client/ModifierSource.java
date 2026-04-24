@@ -213,12 +213,8 @@ public abstract class ModifierSource<T> implements Comparable<ModifierSource<T>>
         public ItemModifierSource(ItemStack data) {
             super(
                     ModifierSourceType.EQUIPMENT,
-                    Comparator.comparing(LivingEntity::getEquipmentSlotForItem)
-                            .reversed()
-                            .thenComparing(
-                                    Comparator.comparing(
-                                            ItemStack::getItem,
-                                            Comparators.idComparator(BuiltInRegistries.ITEM))),
+                    Comparator.comparing(
+                            ItemStack::getItem, Comparators.idComparator(BuiltInRegistries.ITEM)),
                     data);
         }
 
@@ -241,7 +237,7 @@ public abstract class ModifierSource<T> implements Comparable<ModifierSource<T>>
             super(
                     ModifierSourceType.MOB_EFFECT,
                     Comparator.comparing(
-                            MobEffectInstance::getEffect,
+                            inst -> inst.getEffect().value(),
                             Comparators.idComparator(BuiltInRegistries.MOB_EFFECT)),
                     data);
         }
@@ -258,8 +254,7 @@ public abstract class ModifierSource<T> implements Comparable<ModifierSource<T>>
             // i += pYOffset;
             // continue;
             // }
-            MobEffect effect = this.data.getEffect();
-            TextureAtlasSprite sprite = texMgr.get(effect);
+            TextureAtlasSprite sprite = texMgr.get(this.data.getEffect());
             float scale = 0.5F;
             PoseStack stack = gfx.pose();
             stack.pushPose();

@@ -178,7 +178,7 @@ import net.minecraft.world.damagesource.DamageType;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.effect.MobEffects;
 import net.minecraft.world.entity.Entity;
-import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.EquipmentSlotGroup;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
 import net.minecraft.world.entity.ai.attributes.AttributeMap;
@@ -195,21 +195,19 @@ import net.minecraft.world.item.ProjectileWeaponItem;
 import net.minecraft.world.item.TridentItem;
 import net.minecraft.world.level.GameType;
 import net.minecraft.world.phys.EntityHitResult;
-import net.neoforged.neoforge.common.NeoForgeMod;
 import net.neoforged.neoforge.event.AddReloadListenerEvent;
 import net.neoforged.neoforge.event.ItemAttributeModifierEvent;
 import net.neoforged.neoforge.event.entity.EntityJoinLevelEvent;
 import net.neoforged.neoforge.event.entity.ProjectileImpactEvent;
-import net.neoforged.neoforge.event.entity.living.LivingAttackEvent;
 import net.neoforged.neoforge.event.entity.living.LivingEntityUseItemEvent;
 import net.neoforged.neoforge.event.entity.living.LivingExperienceDropEvent;
 import net.neoforged.neoforge.event.entity.living.LivingHealEvent;
-import net.neoforged.neoforge.event.entity.living.LivingHurtEvent;
+import net.neoforged.neoforge.event.entity.living.LivingIncomingDamageEvent;
 import net.neoforged.neoforge.event.entity.player.AttackEntityEvent;
 import net.neoforged.neoforge.event.entity.player.CriticalHitEvent;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent.BreakSpeed;
 import net.neoforged.neoforge.event.entity.player.PlayerEvent.PlayerLoggedInEvent;
-import net.neoforged.neoforge.event.level.BlockEvent.BreakEvent;
+import net.neoforged.neoforge.event.level.BlockDropsEvent;
 import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 
@@ -218,7 +216,8 @@ public class AttributeEvents {
     @SubscribeEvent
     public void fixChangedAttributes(PlayerLoggedInEvent e) {
         AttributeMap map = e.getEntity().getAttributes();
-        map.getInstance(NeoForgeMod.STEP_HEIGHT_ADDITION.get()).setBaseValue(0.6);
+        AttributeInstance stepHeight = map.getInstance(Attributes.STEP_HEIGHT);
+        if (stepHeight != null) stepHeight.setBaseValue(0.6);
     }
 
     private boolean canBenefitFromDrawSpeed(ItemStack stack) {
@@ -262,7 +261,7 @@ public class AttributeEvents {
 
     /** This event handler manages the Life Steal and Overheal attributes. */
     @SubscribeEvent(priority = EventPriority.LOWEST)
-    public void lifeStealOverheal(LivingHurtEvent e) {
+    public void lifeStealOverheal(LivingIncomingDamageEvent e) {
         if (e.getSource().getDirectEntity() instanceof LivingEntity attacker
                 && AttributesUtil.isPhysicalDamage(e.getSource())) {
             float lifesteal =
@@ -297,7 +296,7 @@ public class AttributeEvents {
      * </ul>
      */
     @SubscribeEvent(priority = EventPriority.LOWEST)
-    public void meleeDamageAttributes(LivingAttackEvent e) {
+    public void meleeDamageAttributes(LivingIncomingDamageEvent e) {
         if (e.getEntity().level().isClientSide || e.getEntity().isDeadOrDying()) return;
         if (noRecurse) return;
         noRecurse = true;
@@ -351,7 +350,7 @@ public class AttributeEvents {
 
     /** Handles {@link ALObjects#CRIT_CHANCE} and {@link ALObjects#CRIT_DAMAGE} */
     @SubscribeEvent(priority = EventPriority.HIGH)
-    public void apothCriticalStrike(LivingHurtEvent e) {
+    public void apothCriticalStrike(LivingIncomingDamageEvent e) {
         LivingEntity attacker = e.getSource().getEntity() instanceof LivingEntity le ? le : null;
         if (attacker == null) return;
 
@@ -375,7 +374,6 @@ public class AttributeEvents {
 
         if (critMult > 1 && !attacker.level().isClientSide) {
             PacketDistro.sendToTracking(
-                    AttributesLib.CHANNEL,
                     new CritParticleMessage(e.getEntity().getId()),
                     (ServerLevel) attacker.level(),
                     e.getEntity().blockPosition());
@@ -388,7 +386,7 @@ public class AttributeEvents {
         float critDmg =
                 (float) e.getEntity().getAttributeValue(ALObjects.Attributes.CRIT_DAMAGE.asHolder());
         if (e.isVanillaCritical()) {
-            e.setDamageModifier(Math.max(e.getDamageModifier(), critDmg));
+            e.setDamageMultiplier(Math.max(e.getDamageMultiplier(), critDmg));
         }
     }
 
@@ -408,10 +406,11 @@ public class AttributeEvents {
      * ALObjects#EXPERIENCE_GAINED}
      */
     @SubscribeEvent(priority = EventPriority.HIGH)
-    public void blockBreak(BreakEvent e) {
+    public void blockBreak(BlockDropsEvent e) {
+        if (!(e.getBreaker() instanceof Player player)) return;
         double xpMult =
-                e.getPlayer().getAttributeValue(ALObjects.Attributes.EXPERIENCE_GAINED.asHolder());
-        e.setExpToDrop((int) (e.getExpToDrop() * xpMult));
+                player.getAttributeValue(ALObjects.Attributes.EXPERIENCE_GAINED.asHolder());
+        e.setDroppedExperience((int) (e.getDroppedExperience() * xpMult));
     }
 
     @SubscribeEvent(priority = EventPriority.HIGH)
@@ -463,14 +462,14 @@ public class AttributeEvents {
 
     /** Handles {@link ALObjects#DODGE_CHANCE} for melee attacks. */
     @SubscribeEvent(priority = EventPriority.HIGH)
-    public void dodge(LivingAttackEvent e) {
+    public void dodge(LivingIncomingDamageEvent e) {
         LivingEntity target = e.getEntity();
         if (target.level().isClientSide) return;
         Entity attacker = e.getSource().getDirectEntity();
         if (attacker instanceof LivingEntity) {
             double atkRangeSqr =
                     attacker instanceof Player p
-                            ? p.getEntityReach() * p.getEntityReach()
+                            ? p.entityInteractionRange() * p.entityInteractionRange()
                             : getAttackReachSqr(attacker, target);
             if (attacker.distanceToSqr(target) <= atkRangeSqr && isDodging(target)) {
                 this.onDodge(target);
@@ -542,45 +541,42 @@ public class AttributeEvents {
     /** Adds a fake modifier to show Attack Range to weapons with Attack Damage. */
     @SubscribeEvent
     public void affixModifiers(ItemAttributeModifierEvent e) {
-        boolean hasBaseAD =
-                e.getModifiers().get(Attributes.ATTACK_DAMAGE).stream()
-                        .filter(
-                                m ->
-                                        ((IFormattableAttribute) Attributes.ATTACK_DAMAGE)
-                                                .getBaseUUID()
-                                                .equals(m.getId()))
-                        .findAny()
-                        .isPresent();
-        if (hasBaseAD) {
-            boolean hasBaseAR =
-                    e.getModifiers().get(NeoForgeMod.ENTITY_REACH.get()).stream()
-                            .filter(
-                                    m ->
-                                            ((IFormattableAttribute) NeoForgeMod.ENTITY_REACH.get())
-                                                    .getBaseUUID()
-                                                    .equals(m.getId()))
-                            .findAny()
-                            .isPresent();
-            if (!hasBaseAR) {
+        e.getModifiers().stream()
+                .filter(entry -> entry.matches(Attributes.ATTACK_DAMAGE, AttributeHelper.BASE_ATTACK_DAMAGE))
+                .findFirst()
+                .ifPresent(
+                        entry -> {
+                            boolean hasBaseAR =
+                                    e.getModifiers().stream()
+                                            .anyMatch(
+                                                    m ->
+                                                            m.matches(
+                                                                    Attributes.ENTITY_INTERACTION_RANGE,
+                                                                    AttributeHelper.BASE_ENTITY_REACH));
+                            if (!hasBaseAR) {
+                                e.addModifier(
+                                        Attributes.ENTITY_INTERACTION_RANGE,
+                                        new AttributeModifier(
+                                                AttributeHelper.BASE_ENTITY_REACH,
+                                                0,
+                                                Operation.ADD_VALUE),
+                                        entry.slot());
+                            }
+                        });
+        if (e.getItemStack().getItem() instanceof ElytraItem
+                && e.getModifiers().stream()
+                        .noneMatch(
+                                entry ->
+                                        entry.matches(
+                                                ALObjects.Attributes.ELYTRA_FLIGHT.asHolder(),
+                                                AttributeHelper.ELYTRA_FLIGHT_ID))) {
                 e.addModifier(
-                        NeoForgeMod.ENTITY_REACH.get(),
+                        ALObjects.Attributes.ELYTRA_FLIGHT.asHolder(),
                         new AttributeModifier(
-                                AttributeHelper.BASE_ENTITY_REACH,
-                                () -> "attributeslib:fake_base_range",
-                                0,
-                                Operation.ADD_VALUE));
-            }
-        }
-        if (e.getSlotType() == EquipmentSlot.CHEST
-                && e.getItemStack().getItem() instanceof ElytraItem
-                && !e.getModifiers().containsKey(ALObjects.Attributes.ELYTRA_FLIGHT.asHolder())) {
-            e.addModifier(
-                    ALObjects.Attributes.ELYTRA_FLIGHT.asHolder(),
-                    new AttributeModifier(
-                            AttributeHelper.ELYTRA_FLIGHT_UUID,
-                            () -> "attributeslib:elytra_item_flight",
+                            AttributeHelper.ELYTRA_FLIGHT_ID,
                             1,
-                            Operation.ADD_VALUE));
+                            Operation.ADD_VALUE),
+                        EquipmentSlotGroup.CHEST);
         }
     }
 
@@ -621,16 +617,15 @@ public class AttributeEvents {
     public static void applyCreativeFlightModifier(Player player, GameType newType) {
         AttributeInstance inst = player.getAttribute(ALObjects.Attributes.CREATIVE_FLIGHT.asHolder());
         if (newType == GameType.CREATIVE || newType == GameType.SPECTATOR) {
-            if (inst.getModifier(AttributeHelper.CREATIVE_FLIGHT_UUID) == null) {
+            if (inst.getModifier(AttributeHelper.CREATIVE_FLIGHT_ID) == null) {
                 inst.addTransientModifier(
                         new AttributeModifier(
-                                AttributeHelper.CREATIVE_FLIGHT_UUID,
-                                () -> "attributeslib:creative_flight",
+                                AttributeHelper.CREATIVE_FLIGHT_ID,
                                 1,
                                 Operation.ADD_VALUE));
             }
         } else {
-            inst.removeModifier(AttributeHelper.CREATIVE_FLIGHT_UUID);
+            inst.removeModifier(AttributeHelper.CREATIVE_FLIGHT_ID);
         }
     }
 

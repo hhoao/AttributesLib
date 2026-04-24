@@ -159,8 +159,8 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation;
 import net.minecraft.world.entity.ai.attributes.RangedAttribute;
-import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
+import net.minecraft.world.item.component.ItemAttributeModifiers;
 
 /**
  * A Percentile Based Attribute is one which always displays modifiers as percentages, even addition
@@ -179,6 +179,6 @@ public class PercentBasedAttribute extends RangedAttribute implements IFormattab
     public MutableComponent toValueComponent(Operation op, double value, TooltipFlag flag) {
         return Component.translatable(
                 "attributeslib.value.percent",
-                ItemStack.ATTRIBUTE_MODIFIER_FORMAT.format(value * 100));
+                ItemAttributeModifiers.ATTRIBUTE_MODIFIER_FORMAT.format(value * 100));
     }
 }

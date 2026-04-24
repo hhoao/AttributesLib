@@ -206,7 +206,7 @@ public class ALConfig {
         hiddenAttributes.clear();
         for (String name : hidden) {
             try {
-                hiddenAttributes.add(new ResourceLocation(name));
+                hiddenAttributes.add(ResourceLocation.parse(name));
             } catch (ResourceLocationException ex) {
                 AttributesLib.LOGGER.error(
                         "Ignoring invalid \"Hidden Attributes\" config entry " + name, ex);

@@ -164,8 +164,8 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.function.BiConsumer;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.EquipmentSlot;
 import net.minecraft.world.entity.LivingEntity;
@@ -191,12 +191,10 @@ public abstract class ModifierSourceType<T> {
                                 BiConsumer<AttributeModifier, ModifierSource<?>> map) {
                             for (EquipmentSlot slot : EquipmentSlot.values()) {
                                 ItemStack item = entity.getItemBySlot(slot);
-                                item.getAttributeModifiers(slot)
-                                        .values()
-                                        .forEach(
-                                                modif -> {
-                                                    map.accept(modif, new ItemModifierSource(item));
-                                                });
+                                item.forEachModifier(
+                                        slot,
+                                        (attribute, modif) ->
+                                                map.accept(modif, new ItemModifierSource(item)));
                             }
                         }
 
@@ -217,14 +215,13 @@ public abstract class ModifierSourceType<T> {
                             for (MobEffectInstance effectInst : entity.getActiveEffects()) {
                                 effectInst
                                         .getEffect()
-                                        .getAttributeModifiers()
-                                        .values()
-                                        .forEach(
-                                                modif -> {
-                                                    map.accept(
-                                                            modif,
-                                                            new EffectModifierSource(effectInst));
-                                                });
+                                        .value()
+                                        .createModifiers(
+                                                effectInst.getAmplifier(),
+                                                (attribute, modif) ->
+                                                        map.accept(
+                                                                modif,
+                                                                new EffectModifierSource(effectInst)));
                             }
                         }
 
@@ -244,7 +241,7 @@ public abstract class ModifierSourceType<T> {
     }
 
     public static Comparator<AttributeModifier> compareBySource(
-            Map<UUID, ModifierSource<?>> sources) {
+            Map<ResourceLocation, ModifierSource<?>> sources) {
 
         Comparator<AttributeModifier> comp =
                 Comparators.chained(

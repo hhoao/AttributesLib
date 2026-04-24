@@ -160,11 +160,12 @@ import dev.shadowsoffire.attributeslib.AttributesLib;
 import dev.shadowsoffire.attributeslib.util.Comparators;
 import dev.shadowsoffire.attributeslib.util.ItemAccess;
 import java.util.Comparator;
-import java.util.UUID;
+import net.minecraft.core.Holder;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.Attribute;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
@@ -173,26 +174,26 @@ import net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation;
 
 public class AttributeHelper {
 
-    /** UUID of the base modifier for Attack Damage */
-    public static final UUID BASE_ATTACK_DAMAGE = ItemAccess.getBaseAD();
+    /** ID of the base modifier for Attack Damage */
+    public static final ResourceLocation BASE_ATTACK_DAMAGE = ItemAccess.getBaseAD();
 
-    /** UUID of the base modifier for Attack Speed */
-    public static final UUID BASE_ATTACK_SPEED = ItemAccess.getBaseAS();
+    /** ID of the base modifier for Attack Speed */
+    public static final ResourceLocation BASE_ATTACK_SPEED = ItemAccess.getBaseAS();
 
-    /** UUID of the base modifier for Attack Range */
-    public static final UUID BASE_ENTITY_REACH =
-            UUID.fromString("89689aa7-c577-4d97-a03e-791fde1798d4");
+    /** ID of the base modifier for Attack Range */
+    public static final ResourceLocation BASE_ENTITY_REACH =
+            AttributesLib.loc("fake_base_range");
 
-    /** UUID of the modifier Elytras use for {@link ALObjects.Attributes#ELYTRA_FLIGHT}. */
-    public static final UUID ELYTRA_FLIGHT_UUID =
-            UUID.fromString("72aae561-99a9-4a48-9b14-589a255cb077");
+    /** ID of the modifier Elytras use for {@link ALObjects.Attributes#ELYTRA_FLIGHT}. */
+    public static final ResourceLocation ELYTRA_FLIGHT_ID =
+            AttributesLib.loc("elytra_item_flight");
 
     /**
-     * UUID of the modifier given to creative players to enable {@link
+     * ID of the modifier given to creative players to enable {@link
      * ALObjects.Attributes#CREATIVE_FLIGHT}.
      */
-    public static final UUID CREATIVE_FLIGHT_UUID =
-            UUID.fromString("3f54312c-0b60-44ff-bf1e-219091553964");
+    public static final ResourceLocation CREATIVE_FLIGHT_ID =
+            AttributesLib.loc("creative_flight");
 
     /**
      * A brief explanation of {@link Operation} and Attribute calculations:
@@ -204,11 +205,11 @@ public class AttributeHelper {
      * executed in order.<br>
      *
      * <ol>
-     *   <li>{@link Operation#ADDITION Addition} adds the given modifier to the base value of the
+     *   <li>{@link Operation#ADD_VALUE Addition} adds the given modifier to the base value of the
      *       attribute.
-     *   <li>{@link Operation#MULTIPLY_BASE Multiply Base} adds (modifier * new base value) to the
+     *   <li>{@link Operation#ADD_MULTIPLIED_BASE Multiply Base} adds (modifier * new base value) to the
      *       final value.
-     *   <li>{@link Operation#MULTIPLY_TOTAL Multiply Total} multiplies the final value by (1.0 +
+     *   <li>{@link Operation#ADD_MULTIPLIED_TOTAL Multiply Total} multiplies the final value by (1.0 +
      *       modifier).
      * </ol>
      *
@@ -238,10 +239,21 @@ public class AttributeHelper {
             String name,
             double value,
             Operation operation) {
-        AttributeInstance inst = entity.getAttribute(attribute);
+        AttributeInstance inst = entity.getAttribute(BuiltInRegistries.ATTRIBUTE.wrapAsHolder(attribute));
         if (inst != null)
             inst.addPermanentModifier(
-                    new AttributeModifier(AttributesLib.MODID + ":" + name, value, operation));
+                    new AttributeModifier(AttributesLib.loc(name), value, operation));
+    }
+
+    public static void modify(
+            LivingEntity entity,
+            Holder<Attribute> attribute,
+            String name,
+            double value,
+            Operation operation) {
+        AttributeInstance inst = entity.getAttribute(attribute);
+        if (inst != null)
+            inst.addPermanentModifier(new AttributeModifier(AttributesLib.loc(name), value, operation));
     }
 
     /** Adds the given modifier to the base value of the attribute. */
@@ -276,9 +288,9 @@ public class AttributeHelper {
 
     public static Comparator<AttributeModifier> modifierComparator() {
         return Comparators.chained(
-                Comparator.comparing(AttributeModifier::getOperation),
-                Comparator.comparing(AttributeModifier::getAmount),
-                Comparator.comparing(AttributeModifier::getId));
+                Comparator.comparing(AttributeModifier::operation),
+                Comparator.comparing(AttributeModifier::amount),
+                Comparator.comparing(AttributeModifier::id));
     }
 
     /** Creates a mutable component starting with the char used to represent a drop-down list. */

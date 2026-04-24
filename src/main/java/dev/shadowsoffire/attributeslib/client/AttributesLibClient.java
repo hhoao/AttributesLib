@@ -175,7 +175,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 import java.util.function.Consumer;
 import javax.annotation.Nullable;
 import net.minecraft.ChatFormatting;
@@ -185,12 +184,14 @@ import net.minecraft.client.gui.screens.inventory.InventoryScreen;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.particle.CritParticle;
 import net.minecraft.client.resources.language.I18n;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MutableComponent;
 import net.minecraft.network.chat.TextColor;
-import net.minecraft.network.chat.contents.LiteralContents;
+import net.minecraft.network.chat.contents.PlainTextContents.LiteralContents;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.effect.MobEffect;
 import net.minecraft.world.effect.MobEffectInstance;
 import net.minecraft.world.entity.Entity;
@@ -200,10 +201,10 @@ import net.minecraft.world.entity.ai.attributes.AttributeModifier;
 import net.minecraft.world.entity.ai.attributes.AttributeModifier.Operation;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.ItemStack.TooltipPart;
 import net.minecraft.world.item.PotionItem;
 import net.minecraft.world.item.TooltipFlag;
-import net.minecraft.world.item.alchemy.PotionUtils;
+import net.minecraft.world.item.alchemy.PotionContents;
+import net.minecraft.world.item.component.ItemAttributeModifiers;
 import net.neoforged.neoforge.client.event.ClientPlayerNetworkEvent;
 import net.neoforged.neoforge.client.event.RegisterClientReloadListenersEvent;
 import net.neoforged.neoforge.client.event.RegisterParticleProvidersEvent;
@@ -259,8 +260,8 @@ public class AttributesLibClient {
             it.next();
             it.remove();
         }
-        int flags = getHideFlags(stack);
-        if (shouldShowInTooltip(flags, TooltipPart.MODIFIERS)) {
+        if (stack.getOrDefault(DataComponents.ATTRIBUTE_MODIFIERS, ItemAttributeModifiers.EMPTY)
+                .showInTooltip()) {
             applyModifierTooltips(e.getEntity(), stack, it::add, e.getFlags());
         }
         NeoForge.EVENT_BUS.post(
@@ -285,13 +286,18 @@ public class AttributesLibClient {
     public void effectGuiTooltips(GatherEffectScreenTooltipsEvent e) {
         List<Component> tooltips = e.getTooltip();
         MobEffectInstance effectInst = e.getEffectInstance();
-        MobEffect effect = effectInst.getEffect();
+        MobEffect effect = effectInst.getEffect().value();
 
         MutableComponent name = (MutableComponent) tooltips.get(0);
         Component duration = tooltips.remove(1);
         duration = Component.translatable("(%s)", duration).withStyle(ChatFormatting.WHITE);
 
         name.append(" ").append(duration);
+
+        List<Pair<Attribute, AttributeModifier>> list = Lists.newArrayList();
+        effect.createModifiers(
+                effectInst.getAmplifier(),
+                (attribute, modifier) -> list.add(new Pair<>(attribute.value(), modifier)));
 
         if (AttributesLib.getTooltipFlag().isAdvanced()) {
             name.append(" ")
@@ -304,26 +310,10 @@ public class AttributesLibClient {
         String key = effect.getDescriptionId() + ".desc";
         if (I18n.exists(key)) {
             tooltips.add(Component.translatable(key).withStyle(ChatFormatting.DARK_GRAY));
-        } else if (AttributesLib.getTooltipFlag().isAdvanced()
-                && effect.getAttributeModifiers().isEmpty()) {
+        } else if (AttributesLib.getTooltipFlag().isAdvanced() && list.isEmpty()) {
             tooltips.add(
                     Component.translatable(key)
                             .withStyle(ChatFormatting.DARK_GRAY, ChatFormatting.ITALIC));
-        }
-
-        List<Pair<Attribute, AttributeModifier>> list = Lists.newArrayList();
-        Map<Attribute, AttributeModifier> map = effect.getAttributeModifiers();
-        if (!map.isEmpty()) {
-            for (Map.Entry<Attribute, AttributeModifier> entry : map.entrySet()) {
-                AttributeModifier attributemodifier = entry.getValue();
-                AttributeModifier attributemodifier1 =
-                        new AttributeModifier(
-                                attributemodifier.getName(),
-                                effect.getAttributeModifierValue(
-                                        effectInst.getAmplifier(), attributemodifier),
-                                attributemodifier.operation());
-                list.add(new Pair<>(entry.getKey(), attributemodifier1));
-            }
         }
 
         if (!list.isEmpty()) {
@@ -343,14 +333,23 @@ public class AttributesLibClient {
         List<Component> tooltips = e.getToolTip();
 
         if (stack.getItem() instanceof PotionItem) {
-            List<MobEffectInstance> effects = PotionUtils.getMobEffects(stack);
+            List<MobEffectInstance> effects =
+                    Lists.newArrayList(
+                            stack.getOrDefault(DataComponents.POTION_CONTENTS, PotionContents.EMPTY)
+                                    .getAllEffects());
             if (effects.size() == 1 && tooltips.size() >= 2) {
-                MobEffect effect = effects.get(0).getEffect();
+                MobEffect effect = effects.get(0).getEffect().value();
                 String key = effect.getDescriptionId() + ".desc";
                 if (I18n.exists(key)) {
                     tooltips.add(
                             2, Component.translatable(key).withStyle(ChatFormatting.DARK_GRAY));
-                } else if (e.getFlags().isAdvanced() && effect.getAttributeModifiers().isEmpty()) {
+                } else if (e.getFlags().isAdvanced()) {
+                    List<Pair<Attribute, AttributeModifier>> attrModifiers = Lists.newArrayList();
+                    effect.createModifiers(
+                            effects.get(0).getAmplifier(),
+                            (attribute, modifier) ->
+                                    attrModifiers.add(new Pair<>(attribute.value(), modifier)));
+                    if (!attrModifiers.isEmpty()) return;
                     tooltips.add(
                             2,
                             Component.translatable(key)
@@ -362,18 +361,8 @@ public class AttributesLibClient {
 
     public static Multimap<Attribute, AttributeModifier> getSortedModifiers(
             ItemStack stack, EquipmentSlot slot) {
-        var unsorted = stack.getAttributeModifiers(slot);
         Multimap<Attribute, AttributeModifier> map = AttributeHelper.sortedMap();
-        for (Map.Entry<Attribute, AttributeModifier> ent : unsorted.entries()) {
-            if (ent.getKey() != null && ent.getValue() != null)
-                map.put(ent.getKey(), ent.getValue());
-            else
-                AttributesLib.LOGGER.debug(
-                        "Detected broken attribute modifier entry on item {}.  Attr={}, Modif={}",
-                        stack,
-                        ent.getKey(),
-                        ent.getValue());
-        }
+        stack.forEachModifier(slot, (attribute, modifier) -> map.put(attribute.value(), modifier));
         return map;
     }
 
@@ -384,16 +373,6 @@ public class AttributesLibClient {
                     .particleEngine
                     .createTrackingEmitter(entity, ALObjects.Particles.APOTH_CRIT.get());
         }
-    }
-
-    private static boolean shouldShowInTooltip(int pHideFlags, TooltipPart pPart) {
-        return (pHideFlags & pPart.getMask()) == 0;
-    }
-
-    private static int getHideFlags(ItemStack stack) {
-        return stack.hasTag() && stack.getTag().contains("HideFlags", 99)
-                ? stack.getTag().getInt("HideFlags")
-                : stack.getItem().getDefaultTooltipHideFlags(stack);
     }
 
     private static void applyModifierTooltips(
@@ -421,7 +400,7 @@ public class AttributesLibClient {
                             offhand.values().removeIf(m1 -> m1.id().equals(m.id()));
                         });
 
-        Set<UUID> skips = new HashSet<>();
+        Set<ResourceLocation> skips = new HashSet<>();
         NeoForge.EVENT_BUS.post(
                 new GatherSkippedAttributeTooltipsEvent(stack, player, skips, flag));
 
@@ -447,8 +426,7 @@ public class AttributesLibClient {
 
     private static record BaseModifier(AttributeModifier base, List<AttributeModifier> children) {}
 
-    private static final UUID FAKE_MERGED_UUID =
-            UUID.fromString("a6b0ac71-e435-416e-a991-7623eaa129a4");
+    private static final ResourceLocation FAKE_MERGED_ID = AttributesLib.loc("merged");
 
     private static void applyTextFor(
             @Nullable Player player,
@@ -456,7 +434,7 @@ public class AttributesLibClient {
             Consumer<Component> tooltip,
             Multimap<Attribute, AttributeModifier> modifierMap,
             String group,
-            Set<UUID> skips,
+            Set<ResourceLocation> skips,
             TooltipFlag flag) {
         if (!modifierMap.isEmpty()) {
             modifierMap.values().removeIf(m -> skips.contains(m.id()));
@@ -472,7 +450,7 @@ public class AttributesLibClient {
 
             modifierMap.forEach(
                     (attr, modif) -> {
-                        if (modif.id().equals(((IFormattableAttribute) attr).getBaseUUID())) {
+                        if (modif.id().equals(((IFormattableAttribute) attr).getBaseId())) {
                             baseModifs.put(attr, new BaseModifier(modif, new ArrayList<>()));
                         }
                     });
@@ -488,7 +466,11 @@ public class AttributesLibClient {
             for (Map.Entry<Attribute, BaseModifier> entry : baseModifs.entrySet()) {
                 Attribute attr = entry.getKey();
                 BaseModifier baseModif = entry.getValue();
-                double entityBase = player == null ? 0 : player.getAttributeBaseValue(attr);
+                double entityBase =
+                        player == null
+                                ? 0
+                                : player.getAttributeBaseValue(
+                                        BuiltInRegistries.ATTRIBUTE.wrapAsHolder(attr));
                 double base = baseModif.base.amount() + entityBase;
                 final double rawBase = base;
                 double amt = base;
@@ -558,8 +540,7 @@ public class AttributesLibClient {
                             if (sums[i] < 0) sums[i] *= -1;
                             var fakeModif =
                                     new AttributeModifier(
-                                            FAKE_MERGED_UUID,
-                                            () -> AttributesLib.MODID + ":merged",
+                                            FAKE_MERGED_ID,
                                             sums[i],
                                             op);
                             MutableComponent comp =
@@ -567,7 +548,7 @@ public class AttributesLibClient {
                             tooltip.accept(comp.withStyle(comp.getStyle().withColor(color)));
                             if (merged[i] && Screen.hasShiftDown()) {
                                 shiftExpands
-                                        .get(Operation.fromValue(i))
+                                        .get(op)
                                         .forEach(
                                                 modif ->
                                                         tooltip.accept(
@@ -581,8 +562,7 @@ public class AttributesLibClient {
                         } else {
                             var fakeModif =
                                     new AttributeModifier(
-                                            FAKE_MERGED_UUID,
-                                            () -> AttributesLib.MODID + ":merged",
+                                            FAKE_MERGED_ID,
                                             sums[i],
                                             op);
                             tooltip.accept(

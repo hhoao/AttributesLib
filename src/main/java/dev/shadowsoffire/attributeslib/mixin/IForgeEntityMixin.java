@@ -157,8 +157,8 @@ package dev.shadowsoffire.attributeslib.mixin;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.player.Player;
-import net.neoforged.neoforge.common.NeoForgeMod;
 import net.neoforged.neoforge.common.extensions.IEntityExtension;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Overwrite;
@@ -182,13 +182,13 @@ public interface IForgeEntityMixin {
     default float getStepHeight() {
         float legacyStep = ((Entity) this).maxUpStep();
         if (this instanceof Player player)
-            return (float) player.getAttributeValue(NeoForgeMod.STEP_HEIGHT_ADDITION.get());
+            return (float) player.getAttributeValue(Attributes.STEP_HEIGHT);
 
         if (this instanceof LivingEntity living) {
             AttributeInstance stepHeightAttribute =
-                    living.getAttribute(NeoForgeMod.STEP_HEIGHT_ADDITION.get());
+                    living.getAttribute(Attributes.STEP_HEIGHT);
             if (stepHeightAttribute != null) {
-                return (float) Math.max(0, legacyStep + stepHeightAttribute.getValue());
+                return (float) Math.max(0, stepHeightAttribute.getValue());
             }
         }
         return legacyStep;
