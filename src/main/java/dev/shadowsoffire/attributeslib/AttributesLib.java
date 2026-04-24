@@ -175,7 +175,6 @@ import net.minecraft.world.entity.ai.attributes.Attributes;
 import net.minecraft.world.entity.ai.attributes.DefaultAttributes;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.item.TooltipFlag;
-import net.neoforged.neoforge.common.NeoForgeMod;
 import net.neoforged.neoforge.common.NeoForge;
 import net.neoforged.neoforge.event.entity.EntityAttributeModificationEvent;
 import net.neoforged.bus.api.IEventBus;
@@ -236,11 +235,6 @@ public class AttributesLib {
                             loc("blindness_follow_range"),
                             -0.75,
                             Operation.ADD_MULTIPLIED_TOTAL);
-                    // TODO: Update to show in GUI without applying attribute to entity
-                    // if (MobEffects.SLOW_FALLING.getAttributeModifiers().isEmpty()) {
-                    // MobEffects.SLOW_FALLING.addAttributeModifier(NeoForgeMod.ENTITY_GRAVITY.get(),
-                    // "A5B6CF2A-2F7C-31EF-9022-7C3E7D5E6ABA", -0.07, Operation.ADD_VALUE);
-                    // }
                 });
     }
 

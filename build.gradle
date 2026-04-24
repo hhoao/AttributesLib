@@ -22,8 +22,6 @@ sourceSets.main.resources {
     srcDir('src/generated/resources')
     exclude("**/*.bbmodel")
     exclude("src/generated/**/.cache")
-    exclude("META-INF/mods.toml")
-    exclude("META-INF/coremods.json")
 }
 
 repositories {
@@ -105,6 +103,8 @@ sourceSets.main.resources.srcDir generateModMetadata
 neoForge.ideSyncTask generateModMetadata
 
 tasks.named('processResources', ProcessResources).configure {
+    includeEmptyDirs = false
+
     var replaceProperties = [
             mod_id      : mod_id,
             mod_name    : mod_name,
@@ -116,6 +116,10 @@ tasks.named('processResources', ProcessResources).configure {
     filesMatching(['pack.mcmeta', "${mod_id}.mixins.json".toString()]) {
         expand replaceProperties
     }
+}
+
+tasks.named('jar', Jar).configure {
+    includeEmptyDirs = false
 }
 
 publishing {

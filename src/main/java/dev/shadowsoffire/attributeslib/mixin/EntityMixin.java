@@ -165,7 +165,7 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 public abstract class EntityMixin {
 
     /**
-     * Causes {@link ForgeMod#ENTITY_GRAVITY} to reduce fall damage, equal to the deviation between
+     * Causes {@link Attributes#GRAVITY} to reduce fall damage, equal to the deviation between
      * the current gravity value and the default of 0.08.
      */
     @ModifyVariable(
