@@ -171,6 +171,8 @@ public class AttributesGui extends Screen {
     @Override
     public boolean isMouseOver(double pMouseX, double pMouseY) {
         if (!this.open) return false;
+        if (this.hideUnchangedBtn.visible && this.hideUnchangedBtn.isMouseOver(pMouseX, pMouseY))
+            return false;
         return this.isHovering(0, 0, WIDTH, 166, pMouseX, pMouseY);
     }
 
