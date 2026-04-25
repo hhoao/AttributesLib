@@ -271,9 +271,9 @@ public class AttributesLibClient {
     public void addAttribComponent(ScreenEvent.Init.Post e) {
         if (ALConfig.enableAttributesGui && e.getScreen() instanceof InventoryScreen scn) {
             var atrComp = new AttributesGui(scn);
-            e.addListener(atrComp);
             e.addListener(atrComp.toggleBtn);
             e.addListener(atrComp.hideUnchangedBtn);
+            e.addListener(atrComp);
             if (AttributesGui.wasOpen || AttributesGui.swappedFromCurios)
                 atrComp.toggleVisibility();
             AttributesGui.swappedFromCurios = false;
