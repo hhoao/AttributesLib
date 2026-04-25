@@ -156,6 +156,7 @@ package dev.shadowsoffire.attributeslib;
 
 import dev.shadowsoffire.attributeslib.api.ALObjects;
 import dev.shadowsoffire.attributeslib.client.AttributesLibClient;
+import dev.shadowsoffire.attributeslib.gametest.OverhealGameTests;
 import dev.shadowsoffire.attributeslib.impl.AttributeEvents;
 import dev.shadowsoffire.attributeslib.packet.CritParticleMessage;
 import dev.shadowsoffire.placebo.config.DeferredHelper;
@@ -182,6 +183,7 @@ import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.event.lifecycle.FMLCommonSetupEvent;
 import net.neoforged.fml.loading.FMLEnvironment;
+import net.neoforged.neoforge.event.RegisterGameTestsEvent;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -296,6 +298,11 @@ public class AttributesLib {
                 attr.setSyncable(true);
             }
         }
+    }
+
+    @SubscribeEvent
+    public void registerGameTests(RegisterGameTestsEvent e) {
+        e.register(OverhealGameTests.class);
     }
 
     public static TooltipFlag getTooltipFlag() {

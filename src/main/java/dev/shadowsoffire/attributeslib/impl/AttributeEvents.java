@@ -168,6 +168,7 @@ import it.unimi.dsi.fastutil.ints.IntOpenHashSet;
 import java.util.Random;
 import net.minecraft.core.particles.ParticleTypes;
 import net.minecraft.resources.ResourceKey;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundSource;
@@ -210,6 +211,9 @@ import net.neoforged.bus.api.EventPriority;
 import net.neoforged.bus.api.SubscribeEvent;
 
 public class AttributeEvents {
+
+    private static final ResourceLocation OVERHEAL_CAP_MODIFIER_ID =
+            AttributesLib.loc("overheal_absorption_cap");
 
     private boolean canBenefitFromDrawSpeed(ItemStack stack) {
         return stack.getItem() instanceof ProjectileWeaponItem
@@ -263,10 +267,29 @@ public class AttributeEvents {
             }
             float overheal =
                     (float) attacker.getAttributeValue(ALObjects.Attributes.OVERHEAL.asHolder());
+            AttributeInstance maxAbsorption = attacker.getAttribute(Attributes.MAX_ABSORPTION);
             float maxOverheal = attacker.getMaxHealth() * 0.5F;
-            if (overheal > 0 && attacker.getAbsorptionAmount() < maxOverheal) {
+            float maxAbsorptionValue = maxOverheal;
+            if (maxAbsorption != null) {
+                maxAbsorption.removeModifier(OVERHEAL_CAP_MODIFIER_ID);
+                double existingCap = maxAbsorption.getValue();
+                if (existingCap + 0.001D < maxOverheal) {
+                    maxAbsorption.addTransientModifier(
+                            new AttributeModifier(
+                                    OVERHEAL_CAP_MODIFIER_ID,
+                                    maxOverheal - existingCap,
+                                    Operation.ADD_VALUE));
+                }
+                maxAbsorptionValue = (float) maxAbsorption.getValue();
+            }
+
+            if (overheal > 0 && attacker.getAbsorptionAmount() < maxAbsorptionValue) {
                 attacker.setAbsorptionAmount(
-                        Math.min(maxOverheal, attacker.getAbsorptionAmount() + dmg * overheal));
+                        Math.min(
+                                maxAbsorptionValue,
+                                attacker.getAbsorptionAmount() + dmg * overheal));
+            } else if (overheal <= 0 && maxAbsorption != null) {
+                maxAbsorption.removeModifier(OVERHEAL_CAP_MODIFIER_ID);
             }
         }
     }
