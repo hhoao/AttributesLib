@@ -280,6 +280,23 @@ public class AttributesLibClient {
         }
     }
 
+    @SubscribeEvent(priority = EventPriority.HIGH)
+    public void scrollAttribComponent(ScreenEvent.MouseScrolled.Pre e) {
+        if (ALConfig.enableAttributesGui && e.getScreen() instanceof InventoryScreen) {
+            for (var listener : e.getScreen().children()) {
+                if (listener instanceof AttributesGui atrComp
+                        && atrComp.mouseScrolled(
+                                e.getMouseX(),
+                                e.getMouseY(),
+                                e.getScrollDeltaX(),
+                                e.getScrollDeltaY())) {
+                    e.setCanceled(true);
+                    return;
+                }
+            }
+        }
+    }
+
     @SuppressWarnings("deprecation")
     @SubscribeEvent(priority = EventPriority.HIGH)
     public void effectGuiTooltips(GatherEffectScreenTooltipsEvent e) {

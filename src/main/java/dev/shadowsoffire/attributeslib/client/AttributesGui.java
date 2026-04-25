@@ -210,6 +210,10 @@ public class AttributesGui implements Renderable, GuiEventListener {
     public static final int ENTRY_HEIGHT = 22;
     public static final int MAX_ENTRIES = 6;
     public static final int WIDTH = 131;
+    private static final int TEXT_COLOR = 0xFF404040;
+    private static final int VALUE_COLOR = 0xFFFFFFFF;
+    private static final int POSITIVE_COLOR = 0xFF55DD55;
+    private static final int NEGATIVE_COLOR = 0xFFFF6060;
 
     // There's only one player, so we can just happily track if this menu was open via static field.
     // It isn't persistent through sessions, but that's not a huge issue.
@@ -372,14 +376,14 @@ public class AttributesGui implements Renderable, GuiEventListener {
                 Component.translatable("attributeslib.gui.attributes"),
                 this.leftPos + 8,
                 this.topPos + 5,
-                0x404040,
+                TEXT_COLOR,
                 false);
         gfx.drawString(
                 font,
                 Component.literal("Hide Unchanged"),
                 this.leftPos + 20,
                 this.topPos + 152,
-                0x404040,
+                TEXT_COLOR,
                 false);
     }
 
@@ -638,7 +642,7 @@ public class AttributesGui implements Renderable, GuiEventListener {
             float width = this.font.width(line) * scale;
             float lineX = (x + 1 + (68 - width) / 2) / scale;
             float lineY = (y + (lines.size() == 1 ? 7 : 2) + i * 10) / scale;
-            gfx.drawString(font, line, (int) lineX, (int) lineY, 0x404040, false);
+            gfx.drawString(font, line, (int) lineX, (int) lineY, TEXT_COLOR, false);
         }
         stack.popMatrix();
         stack.pushMatrix();
@@ -657,15 +661,15 @@ public class AttributesGui implements Renderable, GuiEventListener {
             stack.scale(scale, scale);
         }
 
-        int color = 0xFFFFFF;
+        int color = VALUE_COLOR;
         if (attr instanceof RangedAttribute) {
             if (inst.getValue() > inst.getBaseValue()) {
-                color = 0x55DD55;
+                color = POSITIVE_COLOR;
             } else if (inst.getValue() < inst.getBaseValue()) {
-                color = 0xFF6060;
+                color = NEGATIVE_COLOR;
             }
         } else if (attr instanceof BooleanAttribute && inst.getValue() > 0) {
-            color = 0x55DD55;
+            color = POSITIVE_COLOR;
         }
         gfx.drawString(
                 font,
