@@ -14,8 +14,9 @@ apply plugin: 'net.minecraftforge.gradle'
 apply plugin: 'org.spongepowered.mixin'
 apply plugin: 'eclipse'
 apply plugin: 'maven-publish'
+apply plugin: 'signing'
 
-version = "${minecraft_version}-${mod_version}"
+version = mod_version
 group = mod_group_id
 archivesBaseName = mod_id
 
@@ -121,17 +122,100 @@ jar {
 
 jar.finalizedBy('reobfJar')
 
+task sourcesJar(type: Jar) {
+    classifier = 'sources'
+    from sourceSets.main.allSource
+}
+
+task javadocJar(type: Jar) {
+    classifier = 'javadoc'
+    from javadoc
+}
+
+javadoc {
+    failOnError = false
+    options.encoding = 'UTF-8'
+    options.addStringOption('Xdoclint:none', '-quiet')
+}
+
+def publishedArtifactId = project.hasProperty('maven_artifact_id') ? project.property('maven_artifact_id') : mod_id
+def centralStagingDir = file("$buildDir/central-staging")
+def centralBundleFileName = "${publishedArtifactId}-${mod_version}-central-bundle.zip"
+
 publishing {
     publications {
         mavenJava(MavenPublication) {
+            groupId project.group
+            artifactId publishedArtifactId
+            version project.version
             artifact jar
+            artifact sourcesJar
+            artifact javadocJar
+
+            pom.withXml {
+                def root = asNode()
+                root.appendNode('name', mod_name)
+                root.appendNode('description', mod_description)
+                root.appendNode('url', 'https://github.com/hhoao/AttributesLib')
+
+                def licensesNode = root.appendNode('licenses')
+                def licenseNode = licensesNode.appendNode('license')
+                licenseNode.appendNode('name', 'Mozilla Public License 2.0')
+                licenseNode.appendNode('url', 'https://www.mozilla.org/en-US/MPL/2.0/')
+                licenseNode.appendNode('distribution', 'repo')
+
+                def developersNode = root.appendNode('developers')
+                def developerNode = developersNode.appendNode('developer')
+                developerNode.appendNode('id', 'hhoao')
+                developerNode.appendNode('name', 'hhoao')
+                developerNode.appendNode('url', 'https://github.com/hhoao')
+
+                def scmNode = root.appendNode('scm')
+                scmNode.appendNode('connection', 'scm:git:https://github.com/hhoao/AttributesLib.git')
+                scmNode.appendNode('developerConnection', 'scm:git:ssh://git@github.com/hhoao/AttributesLib.git')
+                scmNode.appendNode('url', 'https://github.com/hhoao/AttributesLib')
+            }
         }
     }
     repositories {
         maven {
+            name 'centralStaging'
+            url centralStagingDir
+        }
+        maven {
+            name 'localRepo'
             url "file:///${project.projectDir}/mcmodsrepo"
         }
     }
+}
+
+task cleanCentralStaging(type: Delete) {
+    delete centralStagingDir
+}
+
+task centralBundle(type: Zip) {
+    group = 'publishing'
+    description = 'Builds a Maven Central Portal upload bundle.'
+    dependsOn 'publishMavenJavaPublicationToCentralStagingRepository'
+    archiveName = centralBundleFileName
+    destinationDir = file("$buildDir/distributions")
+    from(centralStagingDir) {
+        exclude '**/maven-metadata.xml*'
+    }
+}
+
+afterEvaluate {
+    tasks.getByName('publishMavenJavaPublicationToCentralStagingRepository').dependsOn cleanCentralStaging
+}
+
+signing {
+    useGpgCmd()
+    required {
+        project.hasProperty('release') && gradle.taskGraph.allTasks.any { task ->
+            task.name == 'centralBundle' || task.name.startsWith('publish') || task.name.startsWith('sign')
+        }
+    }
+    sign publishing.publications.mavenJava
 }
 
 tasks.withType(JavaCompile).configureEach {
