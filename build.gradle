@@ -15,6 +15,8 @@ buildscript {
 plugins {
     id 'eclipse'
     id 'idea'
+    id 'maven-publish'
+    id 'signing'
     id 'net.minecraftforge.gradle' version '[6.0.16,6.2)'
     id("com.diffplug.spotless") version "6.10.0"
 }
@@ -23,7 +25,7 @@ apply plugin: 'org.spongepowered.mixin'
 
 
 group = mod_group_id
-version = minecraft_version + '_' + mod_version
+version = mod_version
 
 base {
     archivesName = mod_id
@@ -31,6 +33,8 @@ base {
 
 java {
     toolchain.languageVersion = JavaLanguageVersion.of(8)
+    withSourcesJar()
+    withJavadocJar()
 }
 
 minecraft {
@@ -301,6 +305,98 @@ jar {
     manifest {
         attributes 'FMLAT': 'accesstransformer.cfg'
     }
+}
+
+tasks.named('javadoc', Javadoc).configure {
+    failOnError = false
+    options.encoding = 'UTF-8'
+    options.addStringOption('Xdoclint:none', '-quiet')
+}
+
+def centralStagingDir = layout.buildDirectory.dir('central-staging')
+def publishedArtifactId = providers.gradleProperty('maven_artifact_id').orElse(mod_id).get()
+def centralBundleFileName = "${publishedArtifactId}-${mod_version}-central-bundle.zip"
+
+publishing {
+    publications {
+        register('mavenJava', MavenPublication) {
+            groupId = project.group
+            artifactId = publishedArtifactId
+            version = project.version
+            from components.java
+
+            pom {
+                name = mod_name
+                description = mod_description
+                url = 'https://github.com/hhoao/AttributesLib'
+
+                licenses {
+                    license {
+                        name = 'Mozilla Public License 2.0'
+                        url = 'https://www.mozilla.org/en-US/MPL/2.0/'
+                        distribution = 'repo'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id = 'hhoao'
+                        name = 'hhoao'
+                        url = 'https://github.com/hhoao'
+                    }
+                }
+
+                scm {
+                    connection = 'scm:git:https://github.com/hhoao/AttributesLib.git'
+                    developerConnection = 'scm:git:ssh://git@github.com/hhoao/AttributesLib.git'
+                    url = 'https://github.com/hhoao/AttributesLib'
+                }
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = 'centralStaging'
+            url = centralStagingDir
+        }
+        maven {
+            name = 'localRepo'
+            url = layout.projectDirectory.dir('repo')
+        }
+    }
+}
+
+tasks.register('cleanCentralStaging', Delete) {
+    delete centralStagingDir
+}
+
+tasks.named('publishMavenJavaPublicationToCentralStagingRepository').configure {
+    dependsOn tasks.named('cleanCentralStaging')
+}
+
+tasks.register('centralBundle', Zip) {
+    group = 'publishing'
+    description = 'Builds a Maven Central Portal upload bundle.'
+    dependsOn tasks.named('publishMavenJavaPublicationToCentralStagingRepository')
+    archiveFileName = centralBundleFileName
+    destinationDirectory = layout.buildDirectory.dir('distributions')
+    from(centralStagingDir) {
+        exclude '**/maven-metadata.xml*'
+    }
+}
+
+def signingKey = providers.gradleProperty('signingKey').orElse(providers.environmentVariable('GPG_PRIVATE_KEY'))
+def signingPassword = providers.gradleProperty('signingPassword').orElse(providers.environmentVariable('GPG_PASSPHRASE'))
+
+signing {
+    useInMemoryPgpKeys(signingKey.orNull, signingPassword.orNull)
+    required {
+        def releaseProperty = providers.gradleProperty('release').map { it.toBoolean() }.orElse(false).get()
+        releaseProperty && gradle.taskGraph.allTasks.any { task ->
+            task.name == 'centralBundle' || task.name.startsWith('publish') || task.name.startsWith('sign')
+        }
+    }
+    sign publishing.publications.mavenJava
 }
 
 
