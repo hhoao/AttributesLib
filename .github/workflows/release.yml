@@ -1,4 +1,4 @@
-name: AttributesLib Release
+name: AttributesLib Release NeoForge 1.21
 
 on:
   workflow_dispatch:
@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: attributeslib-release
+  group: attributeslib-release-${{ github.workflow }}-${{ github.ref_name }}
   cancel-in-progress: false
 
 jobs:
