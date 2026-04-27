@@ -182,6 +182,7 @@ mixin {
 tasks.named('processResources', ProcessResources).configure {
     var replaceProperties = [
             mod_group_id           : mod_group_id,
+            mixin_package          : mixin_package,
             mod_id                 : mod_id,
             mod_version            : mod_version,
             version                : version,
@@ -208,7 +209,7 @@ tasks.named('processResources', ProcessResources).configure {
         def mixinFiles = []
         def clientMixinFiles = []
 
-        def path = "${project.projectDir}/src/main/java/${mod_group_id}/${mod_id}/mixin".replaceAll('\\.', '/')
+        def path = "${project.projectDir}/src/main/java/${mixin_package.replace('.', '/')}"
         fileTree(path).visit { FileVisitDetails details ->
             def name = details.file.path.replace('\\', '/')
             name = name.substring(name.indexOf('mixin/') + 'mixin/'.length(), name.length())
@@ -222,6 +223,10 @@ tasks.named('processResources', ProcessResources).configure {
             }
         }
         println(path)
+
+        if (mixinFiles.isEmpty() && clientMixinFiles.isEmpty()) {
+            throw new GradleException("No mixins found under ${path}")
+        }
 
         def mixins = ''
         def clientMixins = ''
