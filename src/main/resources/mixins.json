@@ -1,6 +1,6 @@
 {
   "required": true,
-  "package": "${mod_group_id}.${mod_id}.mixin",
+  "package": "${mixin_package}",
   "compatibilityLevel": "JAVA_${java_version}",
   "refmap": "${mod_id}.refmap.json",
   "maxShiftBy": 5,
