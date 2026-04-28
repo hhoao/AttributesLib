@@ -70,6 +70,7 @@ public class AttributesGui {
     private int startIndex;
     private boolean open;
     private boolean scrolling;
+    private boolean lastLeftDown;
 
     public AttributesGui(GuiInventory parent) {
         this.parent = parent;
@@ -131,6 +132,7 @@ public class AttributesGui {
 
     public void render(int mouseX, int mouseY, float partialTicks) {
         this.syncLayout();
+        this.pollMouseInput(mouseX, mouseY);
         if (!this.open || this.player == null) return;
 
         this.refreshData();
@@ -184,10 +186,18 @@ public class AttributesGui {
     }
 
     public boolean handleMouseInput(int mouseX, int mouseY) {
-        if (!this.open) return false;
-        int maxRows = this.getMaxRows();
+        return false;
+    }
 
-        int wheel = Mouse.getEventDWheel();
+    private void pollMouseInput(int mouseX, int mouseY) {
+        if (!this.open) {
+            this.scrolling = false;
+            this.lastLeftDown = false;
+            return;
+        }
+
+        int maxRows = this.getMaxRows();
+        int wheel = Mouse.getDWheel();
         if (wheel != 0 && this.isMouseOver(mouseX, mouseY) && maxRows > 0) {
             if (wheel < 0) {
                 scrollOffset = Math.min(1.0F, scrollOffset + 1.0F / maxRows);
@@ -195,32 +205,41 @@ public class AttributesGui {
                 scrollOffset = Math.max(0.0F, scrollOffset - 1.0F / maxRows);
             }
             this.startIndex = Math.round(scrollOffset * maxRows);
-            return true;
         }
 
         boolean leftDown = Mouse.isButtonDown(0);
-        int scrollLeft = this.leftPos + 111;
-        int scrollTop = this.topPos + 15;
-        int scrollBottom = scrollTop + 138;
-
         if (!leftDown) {
             this.scrolling = false;
-        } else if (!this.scrolling && maxRows > 0
-                && mouseX >= scrollLeft && mouseX < scrollLeft + 12
-                && mouseY >= scrollTop && mouseY < scrollBottom + 17) {
-            this.scrolling = true;
+            this.lastLeftDown = false;
+            return;
         }
 
-        if (this.scrolling && maxRows > 0) {
-            float range = scrollBottom - scrollTop - 15.0F;
-            if (range > 0) {
-                scrollOffset = MathHelper.clamp(((float) mouseY - scrollTop - 7.5F) / range, 0.0F, 1.0F);
-                this.startIndex = Math.round(scrollOffset * maxRows);
-                return true;
+        if (!this.lastLeftDown && maxRows > 0) {
+            int scrollLeft = this.leftPos + 111;
+            int scrollTop = this.topPos + 15;
+            if (mouseX >= scrollLeft
+                    && mouseX < scrollLeft + 12
+                    && mouseY >= scrollTop
+                    && mouseY < scrollTop + 155) {
+                this.scrolling = true;
+                this.applyScrollFromMouse(mouseY, maxRows);
             }
+        } else if (this.scrolling && maxRows > 0) {
+            this.applyScrollFromMouse(mouseY, maxRows);
         }
 
-        return false;
+        this.lastLeftDown = true;
+    }
+
+    private void applyScrollFromMouse(int mouseY, int maxRows) {
+        int scrollTop = this.topPos + 15;
+        int scrollBottom = scrollTop + 138;
+        float range = scrollBottom - scrollTop - 15.0F;
+        if (range > 0) {
+            scrollOffset =
+                    MathHelper.clamp(((float) mouseY - scrollTop - 7.5F) / range, 0.0F, 1.0F);
+            this.startIndex = Math.round(scrollOffset * maxRows);
+        }
     }
 
     private void renderEntry(IAttributeInstance inst, int x, int y, int mouseX, int mouseY) {
@@ -655,16 +674,27 @@ public class AttributesGui {
     private static Field accessField(String name) throws ReflectiveOperationException {
         if ("guiLeft".equals(name)) {
             if (GUI_LEFT == null) {
-                GUI_LEFT = GuiContainer.class.getDeclaredField(name);
-                GUI_LEFT.setAccessible(true);
+                GUI_LEFT = resolveField("guiLeft", "field_147003_i");
             }
             return GUI_LEFT;
         }
         if (GUI_TOP == null) {
-            GUI_TOP = GuiContainer.class.getDeclaredField(name);
-            GUI_TOP.setAccessible(true);
+            GUI_TOP = resolveField("guiTop", "field_147009_r");
         }
         return GUI_TOP;
+    }
+
+    private static Field resolveField(String... names) throws NoSuchFieldException {
+        for (String name : names) {
+            try {
+                Field field = GuiContainer.class.getDeclaredField(name);
+                field.setAccessible(true);
+                return field;
+            } catch (NoSuchFieldException ex) {
+                // Try the next name variant.
+            }
+        }
+        throw new NoSuchFieldException(String.join(", ", names));
     }
 
     public static class ToggleButton extends GuiButton {
