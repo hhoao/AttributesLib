@@ -1,21 +1,21 @@
 package dev.shadowsoffire.attributeslib.mixin;
 
 import dev.shadowsoffire.attributeslib.api.AttributeChangedValueEvent;
-import java.util.Iterator;
 import javax.annotation.Nullable;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.network.NetHandlerPlayClient;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityLivingBase;
-import net.minecraft.entity.ai.attributes.AbstractAttributeMap;
 import net.minecraft.entity.ai.attributes.IAttributeInstance;
 import net.minecraft.network.play.server.SPacketEntityProperties;
+import net.minecraft.world.World;
 import net.minecraftforge.common.MinecraftForge;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.Redirect;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 
 /**
  * Fires {@link AttributeChangedValueEvent} on the client whenever {@code SPacketEntityProperties}
@@ -34,7 +34,23 @@ public class NetHandlerPlayClientMixin {
     @Unique @Nullable private IAttributeInstance apoth_lastInst;
     @Unique @Nullable private EntityLivingBase apoth_lastEntity;
 
+    /**
+     * Remembers which entity the incoming packet belongs to. The locals of the target method
+     * cannot be captured because its local variable table omits the snapshot iterator slot, so
+     * the entity is resolved from the packet instead.
+     */
     @Inject(
+            at = @At("HEAD"),
+            method =
+                    "handleEntityProperties(Lnet/minecraft/network/play/server/SPacketEntityProperties;)V",
+            require = 1)
+    public void apoth_recordEntity(SPacketEntityProperties packet, CallbackInfo ci) {
+        World world = Minecraft.getMinecraft().world;
+        Entity entity = world == null ? null : world.getEntityByID(packet.getEntityId());
+        this.apoth_lastEntity = entity instanceof EntityLivingBase ? (EntityLivingBase) entity : null;
+    }
+
+    @Redirect(
             at =
                     @At(
                             value = "INVOKE",
@@ -42,22 +58,14 @@ public class NetHandlerPlayClientMixin {
                                     "Lnet/minecraft/entity/ai/attributes/IAttributeInstance;setBaseValue(D)V"),
             method =
                     "handleEntityProperties(Lnet/minecraft/network/play/server/SPacketEntityProperties;)V",
-            require = 1,
-            locals = LocalCapture.CAPTURE_FAILHARD)
-    public void apoth_recordOldAttrValue(
-            SPacketEntityProperties packet,
-            CallbackInfo ci,
-            Entity entity,
-            AbstractAttributeMap map,
-            Iterator<?> it,
-            SPacketEntityProperties.Snapshot snapshot,
-            IAttributeInstance inst) {
+            require = 1)
+    public void apoth_recordOldAttrValue(IAttributeInstance inst, double value) {
         apoth_flushPending();
-        if (entity instanceof EntityLivingBase) {
-            this.apoth_lastEntity = (EntityLivingBase) entity;
+        if (this.apoth_lastEntity != null) {
             this.apoth_lastInst = inst;
             this.apoth_lastValue = inst.getAttributeValue();
         }
+        inst.setBaseValue(value);
     }
 
     @Inject(
