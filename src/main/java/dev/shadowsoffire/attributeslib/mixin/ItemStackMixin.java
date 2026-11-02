@@ -18,6 +18,10 @@ public class ItemStackMixin {
      * Marks the point just before vanilla begins iterating equipment slots for attribute tooltip
      * output. The marker is always removed later during {@code ItemTooltipEvent}, even when the
      * item ends up contributing no modifier lines.
+     * <p>
+     * Only the tooltip list is captured. The vanilla local variable table does not cover every
+     * local of this method (the equipment slot array, its length and the loop index are missing),
+     * so capturing those fails hard and aborts the class transform.
      */
     @Inject(
             method =
@@ -33,9 +37,7 @@ public class ItemStackMixin {
             @Nullable EntityPlayer player,
             ITooltipFlag flag,
             CallbackInfoReturnable<List<String>> cir,
-            List<String> tooltip,
-            String name,
-            int hideFlags) {
+            List<String> tooltip) {
         tooltip.add("APOTH_REMOVE_MARKER");
     }
 
@@ -57,12 +59,7 @@ public class ItemStackMixin {
             @Nullable EntityPlayer player,
             ITooltipFlag flag,
             CallbackInfoReturnable<List<String>> cir,
-            List<String> tooltip,
-            String name,
-            int hideFlags,
-            net.minecraft.inventory.EntityEquipmentSlot[] slots,
-            int slotCount,
-            int slotIdx) {
+            List<String> tooltip) {
         tooltip.add("APOTH_REMOVE_MARKER_2");
     }
 }
