@@ -131,6 +131,11 @@ public class AttributesGui {
 
         this.refreshData();
 
+        // Tooltips drawn earlier in the same frame leave lighting enabled
+        // (GuiUtils.drawHoveringText ends with enableLighting /
+        // RenderHelper.enableStandardItemLighting), which would shade the panel texture.
+        GlStateManager.disableLighting();
+        GlStateManager.disableRescaleNormal();
         GlStateManager.color(1F, 1F, 1F, 1F);
         this.mc.getTextureManager().bindTexture(TEXTURES);
         Gui.drawModalRectWithCustomSizedTexture(
