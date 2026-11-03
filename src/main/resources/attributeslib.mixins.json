@@ -15,6 +15,7 @@
     "PlayerMixin"
   ],
   "client": [
+    "GuiContainerAccessor",
     "InventoryEffectRendererMixin",
     "ItemStackMixin",
     "NetHandlerPlayClientMixin"

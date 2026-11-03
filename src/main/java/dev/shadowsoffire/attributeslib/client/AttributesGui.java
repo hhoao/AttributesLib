@@ -5,7 +5,7 @@ import dev.shadowsoffire.attributeslib.AttributesLib;
 import dev.shadowsoffire.attributeslib.api.ALObjects;
 import dev.shadowsoffire.attributeslib.api.IFormattableAttribute;
 import dev.shadowsoffire.attributeslib.impl.BooleanAttribute;
-import java.lang.reflect.Field;
+import dev.shadowsoffire.attributeslib.mixin.GuiContainerAccessor;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -21,7 +21,6 @@ import net.minecraft.client.entity.EntityPlayerSP;
 import net.minecraft.client.gui.FontRenderer;
 import net.minecraft.client.gui.Gui;
 import net.minecraft.client.gui.GuiButton;
-import net.minecraft.client.gui.inventory.GuiContainer;
 import net.minecraft.client.gui.inventory.GuiInventory;
 import net.minecraft.client.renderer.GlStateManager;
 import net.minecraft.client.resources.I18n;
@@ -48,9 +47,6 @@ public class AttributesGui {
     public static final int IMAGE_HEIGHT = 256;
     public static final int TOGGLE_BUTTON_ID = 0xA77001;
     public static final int HIDE_UNCHANGED_BUTTON_ID = 0xA77002;
-
-    private static Field GUI_LEFT;
-    private static Field GUI_TOP;
 
     public static boolean wasOpen = false;
     protected static float scrollOffset = 0;
@@ -135,6 +131,11 @@ public class AttributesGui {
 
         this.refreshData();
 
+        // Tooltips drawn earlier in the same frame leave lighting enabled
+        // (GuiUtils.drawHoveringText ends with enableLighting /
+        // RenderHelper.enableStandardItemLighting), which would shade the panel texture.
+        GlStateManager.disableLighting();
+        GlStateManager.disableRescaleNormal();
         GlStateManager.color(1F, 1F, 1F, 1F);
         this.mc.getTextureManager().bindTexture(TEXTURES);
         Gui.drawModalRectWithCustomSizedTexture(
@@ -627,44 +628,16 @@ public class AttributesGui {
     }
 
     private void syncLayout() {
-        this.leftPos = readGuiInt("guiLeft") - WIDTH;
-        this.topPos = readGuiInt("guiTop");
-        this.toggleBtn.x = readGuiInt("guiLeft") + 63;
-        this.toggleBtn.y = readGuiInt("guiTop") + 10;
+        GuiContainerAccessor layout = (GuiContainerAccessor) this.parent;
+        int guiLeft = layout.getGuiLeft();
+        int guiTop = layout.getGuiTop();
+        this.leftPos = guiLeft - WIDTH;
+        this.topPos = guiTop;
+        this.toggleBtn.x = guiLeft + 63;
+        this.toggleBtn.y = guiTop + 10;
         this.hideUnchangedBtn.x = this.leftPos + 7;
         this.hideUnchangedBtn.y = this.topPos + 151;
         this.hideUnchangedBtn.visible = this.open;
-    }
-
-    private int readGuiInt(String name) {
-        try {
-            return accessField(name).getInt(this.parent);
-        } catch (ReflectiveOperationException ex) {
-            throw new IllegalStateException("Failed to access GuiContainer layout field " + name, ex);
-        }
-    }
-
-    private void writeGuiInt(String name, int value) {
-        try {
-            accessField(name).setInt(this.parent, value);
-        } catch (ReflectiveOperationException ex) {
-            throw new IllegalStateException("Failed to write GuiContainer layout field " + name, ex);
-        }
-    }
-
-    private static Field accessField(String name) throws ReflectiveOperationException {
-        if ("guiLeft".equals(name)) {
-            if (GUI_LEFT == null) {
-                GUI_LEFT = GuiContainer.class.getDeclaredField(name);
-                GUI_LEFT.setAccessible(true);
-            }
-            return GUI_LEFT;
-        }
-        if (GUI_TOP == null) {
-            GUI_TOP = GuiContainer.class.getDeclaredField(name);
-            GUI_TOP.setAccessible(true);
-        }
-        return GUI_TOP;
     }
 
     public static class ToggleButton extends GuiButton {

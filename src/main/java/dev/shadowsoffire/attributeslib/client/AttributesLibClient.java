@@ -515,6 +515,11 @@ public class AttributesLibClient {
     }
 
     private static UUID getBaseUuid(IAttribute attr) {
+        // Vanilla weapon modifiers use fixed UUIDs, and vanilla adds the player's base attribute
+        // value to them before displaying (1.12.2 ItemStack.getTooltip). Without this the tooltip
+        // would print the raw modifier, e.g. "-2.4 Attack Speed" instead of "+1.6 Attack Speed".
+        if (attr == SharedMonsterAttributes.ATTACK_DAMAGE) return AttributeHelper.BASE_ATTACK_DAMAGE;
+        if (attr == SharedMonsterAttributes.ATTACK_SPEED) return AttributeHelper.BASE_ATTACK_SPEED;
         return attr instanceof IFormattableAttribute ? ((IFormattableAttribute) attr).getBaseUUID() : null;
     }
 
